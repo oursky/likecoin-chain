@@ -23,13 +23,18 @@ jobs:
           name: Test
           command: make test
   build:
+    parameters:
+      os:
+        type: string
+      arch:
+        type: string
     docker:
       - image: golang:1.16-buster
     steps:
       - checkout
       - run:
-          name: Build
-          command: make build
+          name: Build-<<parameters.os>>-<<parameters.arch>>
+          command: GOOS=<<parameters.os>> GOARCH=<<parameters.arch>> make build
       - store_artifacts:
           path: /root/project/build
   deploy:
@@ -39,14 +44,22 @@ jobs:
       - run:
           name: Test
           command: go test -timeout 5m ./...
-
       # Handle deployment
 
 workflows:
   version: 2.1
   test_and_build:
     jobs:
-      - build
+      - build:
+          matrix:
+            parameters:
+              os: ["darwin", "linux", "windows"]
+              arch: ["386", "amd64", "arm64"]
+            exclude:
+              - os: "darwin"
+                arch: "386"
+              - os: "windows"
+                arch: "arm64"
       - test:
           requires:
             - build
