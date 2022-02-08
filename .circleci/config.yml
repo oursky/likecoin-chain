@@ -33,6 +33,7 @@ jobs:
       - image: golang:1.16-buster
     steps:
       - checkout
+      - echo "test"
       - run:
           name: "Build binaries"
           command: make build-release
