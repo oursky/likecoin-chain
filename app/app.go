@@ -99,6 +99,10 @@ import (
 	bech32govmigration "github.com/likecoin/likechain/bech32-migration/gov"
 	bech32slashingmigration "github.com/likecoin/likechain/bech32-migration/slashing"
 	bech32stakingmigration "github.com/likecoin/likechain/bech32-migration/staking"
+
+	"github.com/likecoin/likechain/backport/cosmos-sdk/v0.46.0-alpha2/x/nft"
+	nftkeeper "github.com/likecoin/likechain/backport/cosmos-sdk/v0.46.0-alpha2/x/nft/keeper"
+	nftmodule "github.com/likecoin/likechain/backport/cosmos-sdk/v0.46.0-alpha2/x/nft/module"
 )
 
 var (
@@ -139,6 +143,7 @@ var (
 
 		// LikeCoin
 		iscn.AppModuleBasic{},
+		nftmodule.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -150,6 +155,7 @@ var (
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
 		govtypes.ModuleName:            {authtypes.Burner},
 		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
+		nft.ModuleName:                 nil,
 	}
 )
 
@@ -187,6 +193,7 @@ type LikeApp struct {
 	AuthzKeeper      authzkeeper.Keeper
 	FeeGrantKeeper   feegrantkeeper.Keeper
 	IscnKeeper       iscnkeeper.Keeper
+	NftKeeper        nftkeeper.Keeper
 
 	// make scoped keepers public for test purposes
 	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
@@ -232,6 +239,7 @@ func NewLikeApp(
 		capabilitytypes.StoreKey,
 		authzkeeper.StoreKey,
 		iscntypes.StoreKey,
+		nft.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
@@ -312,6 +320,7 @@ func NewLikeApp(
 	app.UpgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, keys[upgradetypes.StoreKey], appCodec, homePath, app.BaseApp)
 	app.registerUpgradeHandlers()
 	app.IscnKeeper = iscnkeeper.NewKeeper(appCodec, keys[iscntypes.StoreKey], app.AccountKeeper, app.BankKeeper, iscnSubspace)
+	app.NftKeeper = nftkeeper.NewKeeper(keys[nft.StoreKey], app.appCodec, app.AccountKeeper, app.BankKeeper)
 
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
@@ -389,6 +398,7 @@ func NewLikeApp(
 		params.NewAppModule(app.ParamsKeeper),
 		authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		iscn.NewAppModule(app.IscnKeeper),
+		nftmodule.NewAppModule(appCodec, app.NftKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -416,6 +426,7 @@ func NewLikeApp(
 		feegrant.ModuleName,
 		paramstypes.ModuleName,
 		iscntypes.ModuleName,
+		nft.ModuleName,
 	)
 
 	app.mm.SetOrderEndBlockers(
@@ -437,6 +448,7 @@ func NewLikeApp(
 		paramstypes.ModuleName,
 		upgradetypes.ModuleName,
 		iscntypes.ModuleName,
+		nft.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -463,6 +475,7 @@ func NewLikeApp(
 		paramstypes.ModuleName,
 		upgradetypes.ModuleName,
 		iscntypes.ModuleName,
+		nft.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -540,6 +553,10 @@ func (app *LikeApp) registerUpgradeHandlers() {
 		return newVM, nil
 	})
 
+	app.UpgradeKeeper.SetUpgradeHandler("v2.1.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		return app.mm.RunMigrations(ctx, app.configurator, fromVM)
+	})
+
 	upgradeInfo, err := app.UpgradeKeeper.ReadUpgradeInfoFromDisk()
 	if err != nil {
 		panic(err)
@@ -548,6 +565,15 @@ func (app *LikeApp) registerUpgradeHandlers() {
 	if upgradeInfo.Name == "v2.0.0" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
 		storeUpgrades := storetypes.StoreUpgrades{
 			Added: []string{authz.ModuleName, feegrant.ModuleName},
+		}
+
+		// configure store loader that checks if version == upgradeHeight and applies store upgrades
+		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &storeUpgrades))
+	}
+
+	if upgradeInfo.Name == "v2.1.0" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
+		storeUpgrades := storetypes.StoreUpgrades{
+			Added: []string{"nft"},
 		}
 
 		// configure store loader that checks if version == upgradeHeight and applies store upgrades
