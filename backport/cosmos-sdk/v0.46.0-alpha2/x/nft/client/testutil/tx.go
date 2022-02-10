@@ -79,7 +79,7 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.Require().NoError(err)
 	genesisState[nft.ModuleName] = nftDataBz
 	s.cfg.GenesisState = genesisState
-	s.network, err = network.New(s.T(), s.T().TempDir(), s.cfg)
+	s.network = network.New(s.T(), s.cfg)
 	s.Require().NoError(err)
 
 	_, err = s.network.WaitForHeight(1)
@@ -157,7 +157,7 @@ func (s *IntegrationTestSuite) initAccount() {
 		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(10))).String()),
 	}
 
-	s.owner, err = keyinfo.GetAddress()
+	s.owner = keyinfo.GetAddress()
 	s.Require().NoError(err)
 
 	amount := sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, sdk.NewInt(200)))
