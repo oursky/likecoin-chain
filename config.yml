@@ -11,6 +11,8 @@ faucet:
   coins: ["100000000000nanolike"]
 build:
   binary: "liked"
+  proto:
+    third_party_paths: ["third_party/proto", "proto_vendor", "backport/cosmos-sdk/v0.46.0-alpha2/proto"]
 init:
   home: "$HOME/.liked"
 genesis:
