@@ -68,6 +68,7 @@ By default, the [node-setup.sh](../deploy/scripts/node-setup.sh) script would do
 | LIKED_WORKDIR      | Working directory, binaries will be downloaded here                                 | $HOME                                |
 | LIKED_HOME         | Home directory for the like node, chain data and configurations will be stored here | $HOME/.liked                         |
 | LIKED_USER         | User used for 'liked.service' to run on behalf of                                   | $USER                                |
+| LIKED_SEED_NODES   | Comma separated p2p seed targets                                                    | Empty                                |
 
 # Upgrades
 
