@@ -8,5 +8,6 @@ docker-compose.yml
 
 artifacts
 build
-
-dist/
+dist
+release
+deploy/liked.service
