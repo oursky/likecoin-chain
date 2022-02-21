@@ -24,3 +24,7 @@ initialize-systemctl:
 .PHONY: start-node
 start-node:
 	sudo systemctl start liked
+
+.PHONY: stop-node
+stop-node:
+	sudo systemctl stop liked

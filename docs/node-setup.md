@@ -8,7 +8,7 @@ To setup a node using our setup script, please run the following command in the 
 MONIKER=<your moniker> make -C deploy setup-node
 ```
 
-After the initialization, you may run the following commands to start the node as a service.
+After the initialization, you may run the following commands to start the node as a service using (systemctl)[http://manpages.ubuntu.com/manpages/xenial/en/man1/systemctl.1.html].
 
 ```
 make -C deploy initialize-systemctl
