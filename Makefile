@@ -21,7 +21,7 @@ GOGO_PROTO_TYPES    = proto/gogoproto
 COSMOS_PROTO_TYPES  = proto/cosmos_proto
 
 ###############################################################################
-###                          	Development  	                                ###
+###                          	Development  	                            ###
 ###############################################################################
 
 all: install test
@@ -141,7 +141,7 @@ release:
 proto-all: proto-format proto-lint gen-proto
 
 gen-proto: x/
-	./scripts//gen_proto.sh
+	./scripts/gen_proto.sh
 
 proto-format:
 	@echo "Formatting Protobuf files"
