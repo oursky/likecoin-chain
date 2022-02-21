@@ -12,7 +12,7 @@ Environment="DAEMON_NAME=liked"
 Environment="DAEMON_HOME=<WORKDIR>/.liked"
 Environment="DAEMON_RESTART_AFTER_UPGRADE=true"
 Environment="DAEMON_ALLOW_DOWNLOAD_BINARIES=true"
-LimitNOFILE=4096
+LimitNOFILE=40960
 
 [Install]
 WantedBy=multi-user.target 
