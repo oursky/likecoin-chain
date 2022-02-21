@@ -21,6 +21,7 @@ for module in "${MODULES[@]}"; do
     protoc \
       -I "$COSMOS_SDK_DIR/proto" \
       -I "$COSMOS_SDK_DIR/third_party/proto" \
+      -I "./backport/cosmos-sdk/v0.46.0-alpha2/proto" \
       --gocosmos_out=plugins=interfacetype+grpc,Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types:. \
       --grpc-gateway_out=logtostderr=true:. \
       --proto_path proto \
