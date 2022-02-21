@@ -106,7 +106,7 @@ func main() {
 					SourceAddressPrefix:      pulumi.String("*"),
 					SourcePortRange:          pulumi.String("*"),
 					DestinationAddressPrefix: pulumi.String("*"),
-					DestinationPortRange:     pulumi.String("26656-26657"),
+					DestinationPortRange:     pulumi.String("26656"),
 					Direction:                pulumi.String(network.SecurityRuleDirectionInbound),
 					Name:                     pulumi.Sprintf("network-inbound-%s", stackName),
 					Priority:                 pulumi.Int(100),
