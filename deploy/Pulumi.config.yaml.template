@@ -3,8 +3,10 @@ config:
   node-deployment:node-moniker: likecoin
   node-deployment:node-seeds: 
   node-deployment:resource-group-name: likecoin
+  node-deployment:vm-username: likecoin
   node-deployment:vm-password:
   node-deployment:vm-private-key:
   node-deployment:vm-public-key:
   node-deployment:vm-ssh-allow-list:
-  node-deployment:vm-username: likecoin
+  node-deployment:vm-hardware: Standard_B2s
+  node-deployment:vm-disk-size: 50
