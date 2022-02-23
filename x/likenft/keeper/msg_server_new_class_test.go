@@ -288,3 +288,72 @@ func TestNewClassInvalidUserAddress(t *testing.T) {
 	// Check mock was called as expected
 	ctrl.Finish()
 }
+
+func TestNewClassUserNotIscnOwner(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := testutil.NewMockBankKeeper(ctrl)
+	iscnKeeper := testutil.NewMockIscnKeeper(ctrl)
+	nftKeeper := testutil.NewMockNftKeeper(ctrl)
+	msgServer, goCtx := setupMsgServer(t, keeper.LikenftDependedKeepers{
+		AccountKeeper: accountKeeper,
+		BankKeeper:    bankKeeper,
+		IscnKeeper:    iscnKeeper,
+		NftKeeper:     nftKeeper,
+	})
+
+	// Test Input
+	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	ownerAddress, _ := sdk.Bech32ifyAddressBytes("cosmos", ownerAddressBytes)
+	iscnId := iscntypes.NewIscnId("likecoin-chain", "abcdef", 1)
+	name := "Class Name"
+	symbol := "ABC"
+	description := "Testing Class 123"
+	uri := "ipfs://abcdef"
+	uriHash := "abcdef"
+	metadata := types.JsonInput(
+		`{
+	"abc": "def",
+	"qwerty": 1234,
+	"bool": false,
+	"null": null,
+	"nested": {
+		"object": {
+			"abc": "def"
+		}
+	}
+}`)
+	burnable := true
+
+	// Mock keeper calls
+	notOwnerAddressBytes := []byte{1, 1, 1, 1, 1, 1, 1, 1}
+	iscnKeeper.
+		EXPECT().
+		GetContentIdRecord(gomock.Any(), gomock.Eq(iscnId.Prefix)).
+		Return(&iscntypes.ContentIdRecord{
+			OwnerAddressBytes: notOwnerAddressBytes,
+			LatestVersion:     1,
+		})
+
+	// Run
+	res, err := msgServer.NewClass(goCtx, &types.MsgNewClass{
+		Creator:      ownerAddress,
+		IscnIdPrefix: iscnId.Prefix.String(),
+		Name:         name,
+		Symbol:       symbol,
+		Description:  description,
+		Uri:          uri,
+		UriHash:      uriHash,
+		Metadata:     metadata,
+		Burnable:     burnable,
+	})
+
+	// Check output
+	require.Error(t, err)
+	require.Contains(t, err.Error(), sdkerrors.ErrUnauthorized.Error())
+	require.Nil(t, res)
+
+	// Check mock was called as expected
+	ctrl.Finish()
+}
