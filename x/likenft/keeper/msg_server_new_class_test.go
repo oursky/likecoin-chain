@@ -96,3 +96,62 @@ func TestNewClassNormal(t *testing.T) {
 	// Check mock was called as expected
 	ctrl.Finish()
 }
+
+func TestNewClassInvalidIscn(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := testutil.NewMockBankKeeper(ctrl)
+	iscnKeeper := testutil.NewMockIscnKeeper(ctrl)
+	nftKeeper := testutil.NewMockNftKeeper(ctrl)
+	msgServer, goCtx := setupMsgServer(t, keeper.LikenftDependedKeepers{
+		AccountKeeper: accountKeeper,
+		BankKeeper:    bankKeeper,
+		IscnKeeper:    iscnKeeper,
+		NftKeeper:     nftKeeper,
+	})
+
+	// Test Input
+	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	ownerAddress, _ := sdk.Bech32ifyAddressBytes("cosmos", ownerAddressBytes)
+	iscnId := "not an iscn id"
+	name := "Class Name"
+	symbol := "ABC"
+	description := "Testing Class 123"
+	uri := "ipfs://abcdef"
+	uriHash := "abcdef"
+	metadata := types.JsonInput(
+		`{
+	"abc": "def",
+	"qwerty": 1234,
+	"bool": false,
+	"null": null,
+	"nested": {
+		"object": {
+			"abc": "def"
+		}
+	}
+}`)
+	burnable := true
+
+	// Run
+	res, err := msgServer.NewClass(goCtx, &types.MsgNewClass{
+		Creator:      ownerAddress,
+		IscnIdPrefix: iscnId,
+		Name:         name,
+		Symbol:       symbol,
+		Description:  description,
+		Uri:          uri,
+		UriHash:      uriHash,
+		Metadata:     metadata,
+		Burnable:     burnable,
+	})
+
+	// Check output
+	require.Error(t, err)
+	require.Contains(t, err.Error(), types.ErrInvalidIscnId.Error())
+	require.Nil(t, res)
+
+	// Check mock was called as expected
+	ctrl.Finish()
+}
