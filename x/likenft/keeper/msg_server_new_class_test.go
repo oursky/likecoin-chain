@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/golang/mock/gomock"
 	"github.com/likecoin/likechain/testutil/keeper"
 	iscntypes "github.com/likecoin/likechain/x/iscn/types"
@@ -215,6 +216,73 @@ func TestNewClassNonExistentIscn(t *testing.T) {
 	// Check output
 	require.Error(t, err)
 	require.Contains(t, err.Error(), types.ErrIscnRecordNotFound.Error())
+	require.Nil(t, res)
+
+	// Check mock was called as expected
+	ctrl.Finish()
+}
+
+func TestNewClassInvalidUserAddress(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := testutil.NewMockBankKeeper(ctrl)
+	iscnKeeper := testutil.NewMockIscnKeeper(ctrl)
+	nftKeeper := testutil.NewMockNftKeeper(ctrl)
+	msgServer, goCtx := setupMsgServer(t, keeper.LikenftDependedKeepers{
+		AccountKeeper: accountKeeper,
+		BankKeeper:    bankKeeper,
+		IscnKeeper:    iscnKeeper,
+		NftKeeper:     nftKeeper,
+	})
+
+	// Test Input
+	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	iscnId := iscntypes.NewIscnId("likecoin-chain", "abcdef", 1)
+	name := "Class Name"
+	symbol := "ABC"
+	description := "Testing Class 123"
+	uri := "ipfs://abcdef"
+	uriHash := "abcdef"
+	metadata := types.JsonInput(
+		`{
+	"abc": "def",
+	"qwerty": 1234,
+	"bool": false,
+	"null": null,
+	"nested": {
+		"object": {
+			"abc": "def"
+		}
+	}
+}`)
+	burnable := true
+
+	// Mock keeper calls
+	iscnKeeper.
+		EXPECT().
+		GetContentIdRecord(gomock.Any(), gomock.Eq(iscnId.Prefix)).
+		Return(&iscntypes.ContentIdRecord{
+			OwnerAddressBytes: ownerAddressBytes,
+			LatestVersion:     1,
+		})
+
+	// Run
+	res, err := msgServer.NewClass(goCtx, &types.MsgNewClass{
+		Creator:      "invalid address",
+		IscnIdPrefix: iscnId.Prefix.String(),
+		Name:         name,
+		Symbol:       symbol,
+		Description:  description,
+		Uri:          uri,
+		UriHash:      uriHash,
+		Metadata:     metadata,
+		Burnable:     burnable,
+	})
+
+	// Check output
+	require.Error(t, err)
+	require.Contains(t, err.Error(), sdkerrors.ErrInvalidAddress.Error())
 	require.Nil(t, res)
 
 	// Check mock was called as expected
