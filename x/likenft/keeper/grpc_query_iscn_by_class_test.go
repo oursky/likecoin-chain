@@ -105,3 +105,39 @@ func TestISCNByClassNormal(t *testing.T) {
 	// Check mock was called as expected
 	ctrl.Finish()
 }
+
+func TestISCNByClassNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := testutil.NewMockBankKeeper(ctrl)
+	iscnKeeper := testutil.NewMockIscnKeeper(ctrl)
+	nftKeeper := testutil.NewMockNftKeeper(ctrl)
+	keeper, ctx := keepertest.LikenftKeeperOverrideDependedKeepers(t, keepertest.LikenftDependedKeepers{
+		AccountKeeper: accountKeeper,
+		BankKeeper:    bankKeeper,
+		IscnKeeper:    iscnKeeper,
+		NftKeeper:     nftKeeper,
+	})
+	goCtx := sdk.WrapSDKContext(ctx)
+
+	// Test input
+	classId := "likenft1aabbccddeeff"
+
+	nftKeeper.
+		EXPECT().
+		GetClass(gomock.Any(), gomock.Eq(classId)).
+		Return(nft.Class{}, false)
+
+	// Run
+	res, err := keeper.ISCNByClass(goCtx, &types.QueryISCNByClassRequest{
+		ClassId: classId,
+	})
+
+	// Check output
+	require.Error(t, err)
+	require.Contains(t, err.Error(), types.ErrNftClassNotFound.Error())
+	require.Nil(t, res)
+
+	// Check mock was called as expected
+	ctrl.Finish()
+}
