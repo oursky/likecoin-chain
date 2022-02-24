@@ -86,3 +86,45 @@ func TestBurnNFTNormal(t *testing.T) {
 	// Check mock was called as expected
 	ctrl.Finish()
 }
+
+func TestBurnNFTTokenNotFound(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := testutil.NewMockBankKeeper(ctrl)
+	iscnKeeper := testutil.NewMockIscnKeeper(ctrl)
+	nftKeeper := testutil.NewMockNftKeeper(ctrl)
+	msgServer, goCtx, _ := setupMsgServer(t, keeper.LikenftDependedKeepers{
+		AccountKeeper: accountKeeper,
+		BankKeeper:    bankKeeper,
+		IscnKeeper:    iscnKeeper,
+		NftKeeper:     nftKeeper,
+	})
+
+	// Test Input
+	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	ownerAddress, _ := sdk.Bech32ifyAddressBytes("cosmos", ownerAddressBytes)
+	classId := "likenft1aabbccddeeff"
+	tokenId := "token1"
+
+	// Mock keeper calls
+	nftKeeper.
+		EXPECT().
+		HasNFT(gomock.Any(), gomock.Eq(classId), gomock.Eq(tokenId)).
+		Return(false)
+
+	// Run
+	res, err := msgServer.BurnNFT(goCtx, &types.MsgBurnNFT{
+		Creator: ownerAddress,
+		ClassID: classId,
+		NftID:   tokenId,
+	})
+
+	// Check output
+	require.Error(t, err)
+	require.Contains(t, err.Error(), types.ErrNftNotFound.Error())
+	require.Nil(t, res)
+
+	// Check mock was called as expected
+	ctrl.Finish()
+}
