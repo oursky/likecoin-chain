@@ -226,3 +226,79 @@ func TestMintNFTClassNotFound(t *testing.T) {
 	// Check mock was called as expected
 	ctrl.Finish()
 }
+
+func TestMintNFTMissingIscnRelation(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := testutil.NewMockBankKeeper(ctrl)
+	iscnKeeper := testutil.NewMockIscnKeeper(ctrl)
+	nftKeeper := testutil.NewMockNftKeeper(ctrl)
+	msgServer, goCtx, _ := setupMsgServer(t, keeper.LikenftDependedKeepers{
+		AccountKeeper: accountKeeper,
+		BankKeeper:    bankKeeper,
+		IscnKeeper:    iscnKeeper,
+		NftKeeper:     nftKeeper,
+	})
+
+	// Test Input
+	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	ownerAddress, _ := sdk.Bech32ifyAddressBytes("cosmos", ownerAddressBytes)
+	iscnId := iscntypes.NewIscnId("likecoin-chain", "abcdef", 1)
+	classId := "likenft1aabbccddeeff"
+	tokenId := "token1"
+	uri := "ipfs://a1b2c3"
+	uriHash := "a1b2c3"
+	metadata := types.JsonInput(
+		`{
+	"abc": "def",
+	"qwerty": 1234,
+	"bool": false,
+	"null": null,
+	"nested": {
+		"object": {
+			"abc": "def"
+		}
+	}
+}`)
+
+	// Mock keeper calls
+	classData := types.ClassData{
+		Metadata:     types.JsonInput(`{"aaaa": "bbbb"}`),
+		IscnIdPrefix: iscnId.Prefix.String(),
+		Config: types.ClassConfig{
+			Burnable: false,
+		},
+	}
+	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
+	nftKeeper.
+		EXPECT().
+		GetClass(gomock.Any(), gomock.Eq(classId)).
+		Return(nft.Class{
+			Id:          classId,
+			Name:        "Class Name",
+			Symbol:      "ABC",
+			Description: "Testing Class 123",
+			Uri:         "ipfs://abcdef",
+			UriHash:     "abcdef",
+			Data:        classDataInAny,
+		}, true)
+
+	// Run
+	res, err := msgServer.MintNFT(goCtx, &types.MsgMintNFT{
+		Creator:  ownerAddress,
+		ClassId:  classId,
+		Id:       tokenId,
+		Uri:      uri,
+		UriHash:  uriHash,
+		Metadata: metadata,
+	})
+
+	// Check output
+	require.Error(t, err)
+	require.Contains(t, err.Error(), types.ErrNftClassNotRelatedToAnyIscn.Error())
+	require.Nil(t, res)
+
+	// Check mock was called as expected
+	ctrl.Finish()
+}
