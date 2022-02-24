@@ -11,3 +11,5 @@ artifacts
 build
 release
 dist/
+
+x/likenft/testutil/generated_*
