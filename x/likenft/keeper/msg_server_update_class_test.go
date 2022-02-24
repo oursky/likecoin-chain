@@ -463,3 +463,101 @@ func TestUpdateClassNotRelatedToIscn(t *testing.T) {
 	ctrl.Finish()
 }
 
+func TestUpdateClassIscnNotFound(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := testutil.NewMockBankKeeper(ctrl)
+	iscnKeeper := testutil.NewMockIscnKeeper(ctrl)
+	nftKeeper := testutil.NewMockNftKeeper(ctrl)
+	msgServer, goCtx, keeper := setupMsgServer(t, keeper.LikenftDependedKeepers{
+		AccountKeeper: accountKeeper,
+		BankKeeper:    bankKeeper,
+		IscnKeeper:    iscnKeeper,
+		NftKeeper:     nftKeeper,
+	})
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	// Test Input
+	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	ownerAddress, _ := sdk.Bech32ifyAddressBytes("cosmos", ownerAddressBytes)
+	classId := "likenft1aabbccddeeff"
+	iscnId := iscntypes.NewIscnId("likecoin-chain", "abcdef", 1)
+	name := "Class Name"
+	symbol := "ABC"
+	description := "Testing Class 123"
+	uri := "ipfs://abcdef"
+	uriHash := "abcdef"
+	metadata := types.JsonInput(
+		`{
+	"abc": "def",
+	"qwerty": 1234,
+	"bool": false,
+	"null": null,
+	"nested": {
+		"object": {
+			"abc": "def"
+		}
+	}
+	}`)
+	burnable := true
+
+	// Mock keeper calls
+	oldClassData := types.ClassData{
+		Metadata:     types.JsonInput(`{"aaaa": "bbbb"}`),
+		IscnIdPrefix: iscnId.Prefix.String(),
+		Config: types.ClassConfig{
+			Burnable: false,
+		},
+	}
+	oldClassDataInAny, _ := cdctypes.NewAnyWithValue(&oldClassData)
+	nftKeeper.
+		EXPECT().
+		GetClass(gomock.Any(), classId).
+		Return(nft.Class{
+			Id:          classId,
+			Name:        "Old Name",
+			Symbol:      "OLD",
+			Description: "Old Class 234",
+			Uri:         "ipfs://11223344",
+			UriHash:     "11223344",
+			Data:        oldClassDataInAny,
+		}, true)
+
+	nftKeeper.
+		EXPECT().
+		GetTotalSupply(gomock.Any(), classId).
+		Return(uint64(0))
+
+	keeper.SetClassesByISCN(ctx, types.ClassesByISCN{
+		IscnIdPrefix: iscnId.Prefix.String(),
+		ClassIds:     []string{classId},
+	})
+
+	iscnKeeper.
+		EXPECT().
+		GetContentIdRecord(gomock.Any(), gomock.Eq(iscnId.Prefix)).
+		Return(nil)
+
+	// Run
+	res, err := msgServer.UpdateClass(goCtx, &types.MsgUpdateClass{
+		Creator:     ownerAddress,
+		ClassId:     classId,
+		Name:        name,
+		Symbol:      symbol,
+		Description: description,
+		Uri:         uri,
+		UriHash:     uriHash,
+		Metadata:    metadata,
+		Burnable:    burnable,
+	})
+
+	// Check output
+	require.Error(t, err)
+	require.Contains(t, err.Error(), types.ErrIscnRecordNotFound.Error())
+	require.Nil(t, res)
+
+	// Check mock was called as expected
+	ctrl.Finish()
+}
+
