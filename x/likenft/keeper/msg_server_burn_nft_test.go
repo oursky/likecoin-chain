@@ -5,6 +5,7 @@ import (
 
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/golang/mock/gomock"
 	"github.com/likecoin/likechain/backport/cosmos-sdk/v0.46.0-alpha2/x/nft"
 	"github.com/likecoin/likechain/testutil/keeper"
@@ -123,6 +124,52 @@ func TestBurnNFTTokenNotFound(t *testing.T) {
 	// Check output
 	require.Error(t, err)
 	require.Contains(t, err.Error(), types.ErrNftNotFound.Error())
+	require.Nil(t, res)
+
+	// Check mock was called as expected
+	ctrl.Finish()
+}
+
+func TestBurnNFTInvalidUserAddress(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := testutil.NewMockBankKeeper(ctrl)
+	iscnKeeper := testutil.NewMockIscnKeeper(ctrl)
+	nftKeeper := testutil.NewMockNftKeeper(ctrl)
+	msgServer, goCtx, _ := setupMsgServer(t, keeper.LikenftDependedKeepers{
+		AccountKeeper: accountKeeper,
+		BankKeeper:    bankKeeper,
+		IscnKeeper:    iscnKeeper,
+		NftKeeper:     nftKeeper,
+	})
+
+	// Test Input
+	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	classId := "likenft1aabbccddeeff"
+	tokenId := "token1"
+
+	// Mock keeper calls
+	nftKeeper.
+		EXPECT().
+		HasNFT(gomock.Any(), gomock.Eq(classId), gomock.Eq(tokenId)).
+		Return(true)
+
+	nftKeeper.
+		EXPECT().
+		GetOwner(gomock.Any(), gomock.Eq(classId), gomock.Eq(tokenId)).
+		Return(ownerAddressBytes)
+
+	// Run
+	res, err := msgServer.BurnNFT(goCtx, &types.MsgBurnNFT{
+		Creator: "not a valid address",
+		ClassID: classId,
+		NftID:   tokenId,
+	})
+
+	// Check output
+	require.Error(t, err)
+	require.Contains(t, err.Error(), sdkerrors.ErrInvalidAddress.Error())
 	require.Nil(t, res)
 
 	// Check mock was called as expected
