@@ -8,6 +8,8 @@ import (
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	nft "github.com/likecoin/likechain/backport/cosmos-sdk/v0.46.0-alpha2/x/nft"
+	nftcli "github.com/likecoin/likechain/backport/cosmos-sdk/v0.46.0-alpha2/x/nft/client/cli"
 	"github.com/likecoin/likechain/testutil/network"
 	iscncli "github.com/likecoin/likechain/x/iscn/client/cli"
 	iscntypes "github.com/likecoin/likechain/x/iscn/types"
@@ -263,4 +265,45 @@ FindIscnIdPrefix:
 	require.Equal(t, expectedUpdatedMetadata, actualUpdatedMetadata)
 	require.Equal(t, true, updatedClassData.Config.Burnable)
 	require.Equal(t, iscnIdPrefix, updatedClassData.IscnIdPrefix)
+
+	// Mint NFT
+	_, err = clitestutil.ExecTestCLICmd(
+		ctx,
+		cli.CmdMintNFT(),
+		append([]string{class.Id, "token1", mintNftFile.Name()}, txArgs...),
+	)
+	require.NoError(t, err)
+
+	// TODO: check events after oursky/likecoin-chain#84
+
+	// Query NFT
+	out, err = clitestutil.ExecTestCLICmd(
+		ctx,
+		nftcli.GetCmdQueryNFT(),
+		append([]string{class.Id, "token1"}, queryArgs...),
+	)
+	require.NoError(t, err)
+
+	// Unmarshal and check nft data
+	nftRes := nft.QueryNFTResponse{}
+	cfg.Codec.MustUnmarshalJSON(out.Bytes(), &nftRes)
+
+	require.Equal(t, class.Id, nftRes.Nft.ClassId)
+	require.Equal(t, "token1", nftRes.Nft.Id)
+	require.Equal(t, "ipfs://QmYXq11iygTghZeyxvTZqpDoTomaX7Vd6Cbv1wuyNxq3Fw", nftRes.Nft.Uri)
+	require.Equal(t, "QmYXq11iygTghZeyxvTZqpDoTomaX7Vd6Cbv1wuyNxq3Fw", nftRes.Nft.UriHash)
+	nftData := types.NFTData{}
+	err = nftData.Unmarshal(nftRes.Nft.Data.Value)
+	require.NoError(t, err)
+	require.Equal(t, iscnIdPrefix, nftData.IscnIdPrefix)
+	expectedNftMetadata, err := types.JsonInput(`{
+	"name": "Sleepy Coffee #1",
+	"description": "Coffee is very sleepy", 
+	"image": "ipfs://QmVhp6V2JdpYftT6LnDPELWCDMkk2aHwQZ1qbWf15KRbaZ",
+	"external_url": "ipfs://QmYXq11iygTghZeyxvTZqpDoTomaX7Vd6Cbv1wuyNxq3Fw"
+}`).Normalize()
+	require.NoError(t, err)
+	actualNftMetadata, err := nftData.Metadata.Normalize()
+	require.NoError(t, err)
+	require.Equal(t, expectedNftMetadata, actualNftMetadata)
 }
