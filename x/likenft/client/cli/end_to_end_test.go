@@ -306,4 +306,23 @@ FindIscnIdPrefix:
 	actualNftMetadata, err := nftData.Metadata.Normalize()
 	require.NoError(t, err)
 	require.Equal(t, expectedNftMetadata, actualNftMetadata)
+
+	// Burn NFT
+	_, err = clitestutil.ExecTestCLICmd(
+		ctx,
+		cli.CmdBurnNFT(),
+		append([]string{class.Id, "token1"}, txArgs...),
+	)
+	require.NoError(t, err)
+
+	// TODO: check events after oursky/likecoin-chain#84
+
+	// Check NFT is burnt
+	_, err = clitestutil.ExecTestCLICmd(
+		ctx,
+		nftcli.GetCmdQueryNFT(),
+		append([]string{class.Id, "token1"}, queryArgs...),
+	)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not found")
 }
