@@ -11,6 +11,9 @@ import (
 	"github.com/likecoin/likechain/testutil/network"
 	iscncli "github.com/likecoin/likechain/x/iscn/client/cli"
 	iscntypes "github.com/likecoin/likechain/x/iscn/types"
+
+	cli "github.com/likecoin/likechain/x/likenft/client/cli"
+	types "github.com/likecoin/likechain/x/likenft/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -173,4 +176,46 @@ FindIscnIdPrefix:
 		}
 	}
 	require.NotEmpty(t, iscnIdPrefix)
+
+	// Create class
+	_, err = clitestutil.ExecTestCLICmd(
+		ctx,
+		cli.CmdNewClass(),
+		append([]string{iscnIdPrefix, newClassFile.Name()}, txArgs...),
+	)
+	require.NoError(t, err)
+
+	// TODO: get exact class id created from events after oursky/likecoin-chain#84
+
+	// Query class
+	out, err = clitestutil.ExecTestCLICmd(
+		ctx,
+		cli.CmdShowClassesByISCN(),
+		append([]string{iscnIdPrefix}, queryArgs...),
+	)
+	require.NoError(t, err)
+
+	// Unmarshal and check class data
+	classesRes := types.QueryGetClassesByISCNResponse{}
+	cfg.Codec.MustUnmarshalJSON(out.Bytes(), &classesRes)
+
+	require.Len(t, classesRes.ClassesByISCN.Classes, 1)
+	class := classesRes.ClassesByISCN.Classes[0]
+	require.Equal(t, "New Class", class.Name)
+	require.Equal(t, "CLS", class.Symbol)
+	require.Equal(t, "Testing New Class", class.Description)
+	require.Equal(t, "ipfs://aabbcc", class.Uri)
+	require.Equal(t, "aabbcc", class.UriHash)
+	classData := types.ClassData{}
+	err = classData.Unmarshal(class.Data.Value)
+	require.NoError(t, err)
+	expectedMetadata, err := types.JsonInput(`{
+	"abc": "def"
+}`).Normalize()
+	require.NoError(t, err)
+	actualMetadata, err := classData.Metadata.Normalize()
+	require.NoError(t, err)
+	require.Equal(t, expectedMetadata, actualMetadata)
+	require.Equal(t, false, classData.Config.Burnable)
+	require.Equal(t, iscnIdPrefix, classData.IscnIdPrefix)
 }
