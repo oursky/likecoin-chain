@@ -218,4 +218,49 @@ FindIscnIdPrefix:
 	require.Equal(t, expectedMetadata, actualMetadata)
 	require.Equal(t, false, classData.Config.Burnable)
 	require.Equal(t, iscnIdPrefix, classData.IscnIdPrefix)
+
+	// Update class
+	_, err = clitestutil.ExecTestCLICmd(
+		ctx,
+		cli.CmdUpdateClass(),
+		append([]string{class.Id, updateClassFile.Name()}, txArgs...),
+	)
+	require.NoError(t, err)
+
+	// TODO: check events after oursky/likecoin-chain#84
+
+	// Query updated class
+	out, err = clitestutil.ExecTestCLICmd(
+		ctx,
+		cli.CmdShowClassesByISCN(),
+		append([]string{iscnIdPrefix}, queryArgs...),
+	)
+	require.NoError(t, err)
+
+	// Unmarshal and check updated class data
+	updatedClassesRes := types.QueryGetClassesByISCNResponse{}
+	cfg.Codec.MustUnmarshalJSON(out.Bytes(), &updatedClassesRes)
+
+	require.Len(t, updatedClassesRes.ClassesByISCN.Classes, 1)
+	updatedClass := updatedClassesRes.ClassesByISCN.Classes[0]
+	require.Equal(t, "Oursky Cat Photos", updatedClass.Name)
+	require.Equal(t, "Meowgear", updatedClass.Symbol)
+	require.Equal(t, "Photos of our beloved bosses.", updatedClass.Description)
+	require.Equal(t, "https://www.facebook.com/chima.fasang", updatedClass.Uri)
+	require.Equal(t, "", updatedClass.UriHash)
+	updatedClassData := types.ClassData{}
+	err = updatedClassData.Unmarshal(updatedClass.Data.Value)
+	require.NoError(t, err)
+	expectedUpdatedMetadata, err := types.JsonInput(`{
+	"name": "Oursky Cat Photos",
+	"description": "Photos of our beloved bosses.",
+	"image": "ipfs://QmZu3v5qFaTrrkSJC4mz8nLoDbR5kJx1QwMUy9CZhFZjT3",
+	"external_link": "https://www.facebook.com/chima.fasang"
+}`).Normalize()
+	require.NoError(t, err)
+	actualUpdatedMetadata, err := updatedClassData.Metadata.Normalize()
+	require.NoError(t, err)
+	require.Equal(t, expectedUpdatedMetadata, actualUpdatedMetadata)
+	require.Equal(t, true, updatedClassData.Config.Burnable)
+	require.Equal(t, iscnIdPrefix, updatedClassData.IscnIdPrefix)
 }
