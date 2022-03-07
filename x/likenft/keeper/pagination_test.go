@@ -347,3 +347,65 @@ func TestPaginationOutOfRangeKey(t *testing.T) {
 	require.Nil(t, res2)
 	require.Equal(t, []int(nil), actualPage2)
 }
+
+func TestPaginationDefaults(t *testing.T) {
+	// all default
+	var actualPage1 []int
+	res1, err := keeper.PaginateArray(10, nil, func(i int) error {
+		actualPage1 = append(actualPage1, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: []byte("5"),
+		Total:   uint64(10),
+	}, res1)
+	require.Equal(t, []int{0, 1, 2, 3, 4}, actualPage1)
+
+	// reverse only
+	var actualPage2 []int
+	res2, err := keeper.PaginateArray(10, &query.PageRequest{
+		Reverse: true,
+	}, func(i int) error {
+		actualPage2 = append(actualPage2, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: []byte("4"),
+		Total:   uint64(10),
+	}, res2)
+	require.Equal(t, []int{9, 8, 7, 6, 5}, actualPage2)
+
+	// key only
+	var actualPage3 []int
+	res3, err := keeper.PaginateArray(10, &query.PageRequest{
+		Key: []byte("5"),
+	}, func(i int) error {
+		actualPage3 = append(actualPage3, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: nil,
+		Total:   uint64(10),
+	}, res3)
+	require.Equal(t, []int{5, 6, 7, 8, 9}, actualPage3)
+
+	// offset only
+	var actualPage4 []int
+	res4, err := keeper.PaginateArray(10, &query.PageRequest{
+		Offset: 5,
+	}, func(i int) error {
+		actualPage4 = append(actualPage4, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: nil,
+		Total:   uint64(10),
+	}, res4)
+	require.Equal(t, []int{5, 6, 7, 8, 9}, actualPage4)
+
+	// limit only covered by normal case
+}
