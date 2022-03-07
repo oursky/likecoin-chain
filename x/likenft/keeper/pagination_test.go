@@ -318,3 +318,32 @@ func TestPaginationOutOfRangeLimit(t *testing.T) {
 	require.Nil(t, res2)
 	require.Equal(t, []int(nil), actualPage2)
 }
+
+func TestPaginationOutOfRangeKey(t *testing.T) {
+	// Normal
+	var actualPage1 []int
+	res1, err := keeper.PaginateArray(10, &query.PageRequest{
+		Key: []byte("10"),
+	}, func(i int) error {
+		actualPage1 = append(actualPage1, i)
+		return nil
+	}, 5, 10)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "key out of range")
+	require.Nil(t, res1)
+	require.Equal(t, []int(nil), actualPage1)
+
+	// Reverse
+	var actualPage2 []int
+	res2, err := keeper.PaginateArray(10, &query.PageRequest{
+		Key:     []byte("10"),
+		Reverse: true,
+	}, func(i int) error {
+		actualPage2 = append(actualPage2, i)
+		return nil
+	}, 5, 10)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "key out of range")
+	require.Nil(t, res2)
+	require.Equal(t, []int(nil), actualPage2)
+}
