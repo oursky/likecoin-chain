@@ -290,3 +290,31 @@ func TestPaginationOutOfRangeOffset(t *testing.T) {
 	}, res4)
 	require.Equal(t, []int(nil), actualPage4)
 }
+
+func TestPaginationOutOfRangeLimit(t *testing.T) {
+	// Golang array size limit
+	var actualPage1 []int
+	res1, err := keeper.PaginateArray(10, &query.PageRequest{
+		Limit: math.MaxUint64,
+	}, func(i int) error {
+		actualPage1 = append(actualPage1, i)
+		return nil
+	}, 5, 10)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "limit out of range")
+	require.Nil(t, res1)
+	require.Equal(t, []int(nil), actualPage1)
+
+	// App defined limit
+	var actualPage2 []int
+	res2, err := keeper.PaginateArray(10, &query.PageRequest{
+		Limit: 6,
+	}, func(i int) error {
+		actualPage2 = append(actualPage2, i)
+		return nil
+	}, 5, 5)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "limit out of range")
+	require.Nil(t, res2)
+	require.Equal(t, []int(nil), actualPage2)
+}
