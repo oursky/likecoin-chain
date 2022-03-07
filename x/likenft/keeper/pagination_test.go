@@ -179,3 +179,52 @@ func TestPaginationReverseOffset(t *testing.T) {
 	}, res4)
 	require.Equal(t, []int{0}, actualPage4)
 }
+
+func TestPaginationReverseKey(t *testing.T) {
+	var actualPage1 []int
+	res1, err := keeper.PaginateArray(10, &query.PageRequest{
+		Limit:   4,
+		Reverse: true,
+	}, func(i int) error {
+		actualPage1 = append(actualPage1, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: []byte("5"),
+		Total:   uint64(10),
+	}, res1)
+	require.Equal(t, []int{9, 8, 7, 6}, actualPage1)
+
+	var actualPage2 []int
+	res2, err := keeper.PaginateArray(10, &query.PageRequest{
+		Limit:   4,
+		Key:     []byte("5"),
+		Reverse: true,
+	}, func(i int) error {
+		actualPage2 = append(actualPage2, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: []byte("1"),
+		Total:   uint64(10),
+	}, res2)
+	require.Equal(t, []int{5, 4, 3, 2}, actualPage2)
+
+	var actualPage3 []int
+	res3, err := keeper.PaginateArray(10, &query.PageRequest{
+		Limit:   4,
+		Key:     []byte("1"),
+		Reverse: true,
+	}, func(i int) error {
+		actualPage3 = append(actualPage3, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: nil,
+		Total:   uint64(10),
+	}, res3)
+	require.Equal(t, []int{1, 0}, actualPage3)
+}
