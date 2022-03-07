@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/types/query"
@@ -227,4 +228,65 @@ func TestPaginationReverseKey(t *testing.T) {
 		Total:   uint64(10),
 	}, res3)
 	require.Equal(t, []int{1, 0}, actualPage3)
+}
+
+func TestPaginationOutOfRangeOffset(t *testing.T) {
+	// Normal
+	var actualPage1 []int
+	res1, err := keeper.PaginateArray(10, &query.PageRequest{
+		Offset: 10,
+	}, func(i int) error {
+		actualPage1 = append(actualPage1, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: nil,
+		Total:   uint64(10),
+	}, res1)
+	require.Equal(t, []int(nil), actualPage1)
+
+	// Reverse
+	var actualPage2 []int
+	res2, err := keeper.PaginateArray(10, &query.PageRequest{
+		Offset:  10,
+		Reverse: true,
+	}, func(i int) error {
+		actualPage2 = append(actualPage2, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: nil,
+		Total:   uint64(10),
+	}, res2)
+	require.Equal(t, []int(nil), actualPage2)
+
+	// Golang array size limit
+	var actualPage3 []int
+	res3, err := keeper.PaginateArray(10, &query.PageRequest{
+		Offset: math.MaxUint64,
+	}, func(i int) error {
+		actualPage3 = append(actualPage3, i)
+		return nil
+	}, 5, 10)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "offset out of range")
+	require.Nil(t, res3)
+	require.Equal(t, []int(nil), actualPage3)
+
+	// No more pages
+	var actualPage4 []int
+	res4, err := keeper.PaginateArray(10, &query.PageRequest{
+		Offset: 10,
+	}, func(i int) error {
+		actualPage4 = append(actualPage4, i)
+		return nil
+	}, 5, 10)
+	require.NoError(t, err)
+	require.Equal(t, &query.PageResponse{
+		NextKey: nil,
+		Total:   uint64(10),
+	}, res4)
+	require.Equal(t, []int(nil), actualPage4)
 }
