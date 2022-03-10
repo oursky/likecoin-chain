@@ -12,30 +12,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (k Keeper) concretizeClassesByISCN(ctx sdk.Context, val types.ClassesByISCN) types.ConcreteClassesByISCN {
-
-	classes := make([]*nft.Class, len(val.ClassIds))
-	for i, classId := range val.ClassIds {
-		class, found := k.nftKeeper.GetClass(ctx, classId)
-		if found {
-			classes[i] = &class
-		} else {
-			classes[i] = nil
-		}
-	}
-
-	return types.ConcreteClassesByISCN{
-		IscnIdPrefix: val.IscnIdPrefix,
-		Classes:      classes,
-	}
-}
-
 func (k Keeper) ClassesByISCNIndex(c context.Context, req *types.QueryClassesByISCNIndexRequest) (*types.QueryClassesByISCNIndexResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 
-	var concreteClassesByISCNs []types.ConcreteClassesByISCN
+	var classesByISCNs []types.ClassesByISCN
 	ctx := sdk.UnwrapSDKContext(c)
 
 	store := ctx.KVStore(k.storeKey)
@@ -47,9 +29,7 @@ func (k Keeper) ClassesByISCNIndex(c context.Context, req *types.QueryClassesByI
 			return err
 		}
 
-		concretized := k.concretizeClassesByISCN(ctx, classesByISCN)
-
-		concreteClassesByISCNs = append(concreteClassesByISCNs, concretized)
+		classesByISCNs = append(classesByISCNs, classesByISCN)
 		return nil
 	})
 
@@ -57,7 +37,7 @@ func (k Keeper) ClassesByISCNIndex(c context.Context, req *types.QueryClassesByI
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &types.QueryClassesByISCNIndexResponse{ClassesByISCN: concreteClassesByISCNs, Pagination: pageRes}, nil
+	return &types.QueryClassesByISCNIndexResponse{ClassesByISCN: classesByISCNs, Pagination: pageRes}, nil
 }
 
 func (k Keeper) ClassesByISCN(c context.Context, req *types.QueryClassesByISCNRequest) (*types.QueryClassesByISCNResponse, error) {
@@ -74,7 +54,23 @@ func (k Keeper) ClassesByISCN(c context.Context, req *types.QueryClassesByISCNRe
 		return nil, status.Error(codes.InvalidArgument, "not found")
 	}
 
-	concretized := k.concretizeClassesByISCN(ctx, val)
+	var classes []nft.Class
+	pageRes, err := PaginateStringArray(val.ClassIds, req.Pagination, func(i int, val string) error {
+		class, found := k.nftKeeper.GetClass(ctx, val)
+		if !found { // not found, fill in id and return rest fields as empty
+			class.Id = val
+		}
+		classes = append(classes, class)
+		return nil
+	}, 20, 50) // TODO refactor this in oursky/likecoin-chain#98
+	if err != nil {
+		// we will not throw error in onResult, so error must be bad pagination argument
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 
-	return &types.QueryClassesByISCNResponse{ClassesByISCN: concretized}, nil
+	return &types.QueryClassesByISCNResponse{
+		IscnIdPrefix: val.IscnIdPrefix,
+		Classes:      classes,
+		Pagination:   pageRes,
+	}, nil
 }
