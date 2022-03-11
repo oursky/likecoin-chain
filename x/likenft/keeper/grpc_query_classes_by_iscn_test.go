@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -68,9 +69,26 @@ func TestClassesByISCNQuerySingle(t *testing.T) {
 			},
 		},
 		{
+			desc: "Full id",
+			request: &types.QueryClassesByISCNRequest{
+				IscnIdPrefix: fmt.Sprintf("%s/1", msgs[1].IscnIdPrefix),
+				Pagination: &query.PageRequest{
+					Limit: uint64(len(classesByMsgs[0])),
+				},
+			},
+			response: &types.QueryClassesByISCNResponse{
+				IscnIdPrefix: msgs[1].IscnIdPrefix,
+				Classes:      classesByMsgs[1],
+				Pagination: &query.PageResponse{
+					NextKey: nil,
+					Total:   uint64(len(classesByMsgs[0])),
+				},
+			},
+		},
+		{
 			desc: "KeyNotFound",
 			request: &types.QueryClassesByISCNRequest{
-				IscnIdPrefix: strconv.Itoa(100000),
+				IscnIdPrefix: "iscn://likecoin-chain/100000",
 			},
 			err: status.Error(codes.InvalidArgument, "not found"),
 		},
