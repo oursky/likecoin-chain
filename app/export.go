@@ -3,8 +3,9 @@ package app
 import (
 	"log"
 
-	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+
+	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -163,7 +164,7 @@ func (app *LikeApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs [
 
 	iter.Close()
 
-	app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	app.StakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx) // nolint:errcheck
 
 	/* Handle slashing state. */
 

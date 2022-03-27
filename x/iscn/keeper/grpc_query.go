@@ -6,9 +6,10 @@ import (
 
 	gocid "github.com/ipfs/go-cid"
 
+	"github.com/likecoin/likechain/x/iscn/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/likecoin/likechain/x/iscn/types"
 )
 
 const FingerprintRecordsPageLimit = 100

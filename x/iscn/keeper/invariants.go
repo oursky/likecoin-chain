@@ -62,6 +62,7 @@ func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 	ir.RegisterRoute(types.ModuleName, IscnOwnerSequenceInvariantName, IscnOwnerSequenceInvariant(k))
 }
 
+// nolint:gocyclo
 func IscnRecordsInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		problemLogger := NewProblemLogger(ctx, IscnRecordsInvariantName)

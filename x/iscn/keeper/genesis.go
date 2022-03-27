@@ -3,8 +3,9 @@ package keeper
 import (
 	"encoding/json"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/likecoin/likechain/x/iscn/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func (k Keeper) InitGenesis(ctx sdk.Context, genesis *types.GenesisState) {
