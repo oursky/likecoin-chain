@@ -121,7 +121,7 @@ func (k Keeper) RecordsByOwner(ctx context.Context, req *types.QueryRecordsByOwn
 	}, nil
 }
 
-func (k Keeper) Params(ctx context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
+func (k Keeper) Params(ctx context.Context, _ *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
 	params := k.GetParams(sdk.UnwrapSDKContext(ctx))
 	return &types.QueryParamsResponse{
 		Params: params,

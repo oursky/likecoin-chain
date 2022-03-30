@@ -90,7 +90,7 @@ func (k Keeper) GetStoreRecord(ctx sdk.Context, seq uint64) *StoreRecord {
 
 func (k Keeper) AddStoreRecord(ctx sdk.Context, record StoreRecord) (seq uint64) {
 	seq = k.GetSequenceCount(ctx)
-	seq += 1
+	seq++
 	k.setSequenceCount(ctx, seq)
 	seqBytes := types.EncodeUint64(seq)
 	recordBytes := k.MustMarshalStoreRecord(&record)

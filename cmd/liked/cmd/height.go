@@ -28,7 +28,10 @@ func ShowHeightCommand() *cobra.Command {
 				return err
 			}
 			cms := store.NewCommitMultiStore(db)
-			fmt.Println(cms.LastCommitID().Version)
+			_, err = fmt.Println(cms.LastCommitID().Version)
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 	}

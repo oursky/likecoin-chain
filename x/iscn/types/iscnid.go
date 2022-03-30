@@ -12,7 +12,7 @@ import (
 
 const IscnIdRegexpPattern = "iscn://([-_.:=+,a-zA-Z0-9]+)/([-_.:=+,a-zA-Z0-9]+)(?:/([0-9]+))?$"
 
-var IscnIdRegexp *regexp.Regexp = regexp.MustCompile(IscnIdRegexpPattern)
+var IscnIdRegexp = regexp.MustCompile(IscnIdRegexpPattern)
 
 func (prefix IscnIdPrefix) String() string {
 	return fmt.Sprintf("iscn://%s/%s", prefix.RegistryName, prefix.ContentId)

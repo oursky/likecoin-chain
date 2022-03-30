@@ -173,7 +173,7 @@ $ %s migrate /path/to/genesis.json --%s=1000000 --%s=likecoin-chain-fotan --%s=2
 				return errors.Wrap(err, "failed to write JSON genesis doc")
 			}
 
-			fmt.Printf("Genesis doc written to %s.\n", outputPath)
+			fmt.Printf("Genesis doc written to %s.\n", outputPath) // nolint:revive
 			return nil
 		},
 	}
