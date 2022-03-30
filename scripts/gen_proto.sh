@@ -4,6 +4,7 @@
 go install google.golang.org/protobuf/cmd/protoc-gen-go
 go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 go install github.com/regen-network/cosmos-proto/protoc-gen-gocosmos
+go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 export PATH="$PATH:$(go env GOPATH)/bin"
 
 pushd "$(dirname $0)/.." > /dev/null 2>&1
