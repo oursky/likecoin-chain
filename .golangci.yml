@@ -3,19 +3,23 @@ linters:
   enable:
     - deadcode
     - gocyclo
-    - golint
+    # - revive TODO: Fix revive lint #175
     - gosec
     - govet
     - ineffassign
     - misspell
     - staticcheck
     - errcheck
+    - unused
     - gosimple
     - varcheck
 
 linters-settings:
   gofmt:
     simplify: false
+  gosec:
+    excludes:
+    - G306 # G306: Expect WriteFile permissions to be 0600 or less
 
 run:
   timeout: 5m

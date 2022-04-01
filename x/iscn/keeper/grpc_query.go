@@ -6,9 +6,10 @@ import (
 
 	gocid "github.com/ipfs/go-cid"
 
+	"github.com/likecoin/likechain/x/iscn/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/likecoin/likechain/x/iscn/types"
 )
 
 const FingerprintRecordsPageLimit = 100
@@ -120,7 +121,7 @@ func (k Keeper) RecordsByOwner(ctx context.Context, req *types.QueryRecordsByOwn
 	}, nil
 }
 
-func (k Keeper) Params(ctx context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
+func (k Keeper) Params(ctx context.Context, _ *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
 	params := k.GetParams(sdk.UnwrapSDKContext(ctx))
 	return &types.QueryParamsResponse{
 		Params: params,

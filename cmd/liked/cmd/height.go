@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/spf13/cobra"
 )
 
 func ShowHeightCommand() *cobra.Command {
@@ -27,7 +28,10 @@ func ShowHeightCommand() *cobra.Command {
 				return err
 			}
 			cms := store.NewCommitMultiStore(db)
-			fmt.Println(cms.LastCommitID().Version)
+			_, err = fmt.Println(cms.LastCommitID().Version)
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 	}

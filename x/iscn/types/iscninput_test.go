@@ -51,7 +51,7 @@ func TestIscnInputNormalize(t *testing.T) {
 		"extra": null
 	}`))
 	require.NoError(t, err)
-	bz, err = input.Normalize()
+	_, err = input.Normalize()
 	require.Error(t, err) // extra comma at the end of `contents`
 }
 

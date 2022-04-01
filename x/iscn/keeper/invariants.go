@@ -40,9 +40,9 @@ func NewProblemLogger(ctx sdk.Context, invariantName string) ProblemLogger {
 }
 
 func (problemLogger *ProblemLogger) Log(msg string) {
-	problemLogger.msgBuf.WriteString(" - ")
-	problemLogger.msgBuf.WriteString(msg)
-	problemLogger.msgBuf.WriteString("\n")
+	problemLogger.msgBuf.WriteString(" - ") // nolint:revive
+	problemLogger.msgBuf.WriteString(msg)   // nolint:revive
+	problemLogger.msgBuf.WriteString("\n")  // nolint:revive
 	problemLogger.logger.Info(msg)
 	problemLogger.problemCount++
 }
@@ -62,6 +62,7 @@ func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 	ir.RegisterRoute(types.ModuleName, IscnOwnerSequenceInvariantName, IscnOwnerSequenceInvariant(k))
 }
 
+// nolint:gocyclo
 func IscnRecordsInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		problemLogger := NewProblemLogger(ctx, IscnRecordsInvariantName)

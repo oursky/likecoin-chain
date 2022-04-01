@@ -56,7 +56,7 @@ init: $(BUILDDIR)/liked
 	$(BUILDDIR)/liked --home $(LIKE_HOME) init ${MONIKER} --chain-id "${CHAIN_ID}"
 
 lint:
-	golangci-lint run --disable-all -E errcheck --timeout 10m
+	golangci-lint run --timeout 10m
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" | xargs gofmt -d -s
 
 format:

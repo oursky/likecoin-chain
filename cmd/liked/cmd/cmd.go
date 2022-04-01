@@ -70,15 +70,15 @@ func addGetIpFlag(startCmd *cobra.Command) {
 			if port == "" {
 				return errors.New("cannot get port from p2p.laddr")
 			}
-			fmt.Println("getting external IP address")
+			fmt.Println("getting external IP address") // nolint:revive
 			ip, err := ip.RunProviders(ip.IPGetters, ip.DefaultTimeout)
 			if err != nil {
-				fmt.Println("Get IP failed, ignoring")
+				fmt.Println("Get IP failed, ignoring") // nolint:revive
 				return nil
 			}
-			fmt.Printf("Got external IP: %s\n", ip)
+			fmt.Printf("Got external IP: %s\n", ip) // nolint:revive
 			ctx.Config.P2P.ExternalAddress = fmt.Sprintf("tcp://%s:%s", ip, laddr.Port())
-			fmt.Printf("p2p.external_address = %s\n", ctx.Config.P2P.ExternalAddress)
+			fmt.Printf("p2p.external_address = %s\n", ctx.Config.P2P.ExternalAddress) // nolint:revive
 		}
 		return originalPreRunE(cmd, args)
 	}

@@ -2,10 +2,12 @@ package iscn_test
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math"
+	"math/big"
 	"os"
 	"testing"
 	"time"
@@ -647,7 +649,10 @@ func TestFailureCases(t *testing.T) {
 
 	// wrong sender address checksum
 	record = goodRecord()
-	msg = &types.MsgCreateIscnRecord{"cosmos1ww3qews2y5jxe8apw2zt8stqqrcu2tptejfwag", record}
+	msg = &types.MsgCreateIscnRecord{
+		From:   "cosmos1ww3qews2y5jxe8apw2zt8stqqrcu2tptejfwag",
+		Record: record,
+	}
 	_, err, simErr, _ := app.DeliverMsg(msg, priv1)
 	require.NoError(t, err)
 	require.Error(t, simErr)
@@ -655,7 +660,10 @@ func TestFailureCases(t *testing.T) {
 
 	// wrong sender address prefix
 	record = goodRecord()
-	msg = &types.MsgCreateIscnRecord{"iaa1nr4zjtg87mtgvf2zetvmny8htuxplsduyc0h9f", record}
+	msg = &types.MsgCreateIscnRecord{
+		From:   "iaa1nr4zjtg87mtgvf2zetvmny8htuxplsduyc0h9f",
+		Record: record,
+	}
 	_, err, simErr, _ = app.DeliverMsg(msg, priv1)
 	require.NoError(t, err)
 	require.Error(t, simErr)
@@ -707,7 +715,11 @@ func TestFailureCases(t *testing.T) {
 
 	// wrong sender address checksum
 	record = goodRecord()
-	msg = &types.MsgUpdateIscnRecord{"cosmos1ww3qews2y5jxe8apw2zt8stqqrcu2tptejfwag", iscnId2.String(), record}
+	msg = &types.MsgUpdateIscnRecord{
+		From:   "cosmos1ww3qews2y5jxe8apw2zt8stqqrcu2tptejfwag",
+		IscnId: iscnId2.String(),
+		Record: record,
+	}
 	_, err, simErr, _ = app.DeliverMsg(msg, priv1)
 	require.NoError(t, err)
 	require.Error(t, simErr)
@@ -715,7 +727,11 @@ func TestFailureCases(t *testing.T) {
 
 	// wrong sender address prefix
 	record = goodRecord()
-	msg = &types.MsgUpdateIscnRecord{"iaa1nr4zjtg87mtgvf2zetvmny8htuxplsduyc0h9f", iscnId2.String(), record}
+	msg = &types.MsgUpdateIscnRecord{
+		From:   "iaa1nr4zjtg87mtgvf2zetvmny8htuxplsduyc0h9f",
+		IscnId: iscnId2.String(),
+		Record: record,
+	}
 	_, err, simErr, _ = app.DeliverMsg(msg, priv1)
 	require.NoError(t, err)
 	require.Error(t, simErr)
@@ -723,7 +739,11 @@ func TestFailureCases(t *testing.T) {
 
 	// invalid ISCN ID format
 	record = goodRecord()
-	msg = &types.MsgUpdateIscnRecord{addr1.String(), iscnId2.String()[1:], record}
+	msg = &types.MsgUpdateIscnRecord{
+		From:   addr1.String(),
+		IscnId: iscnId2.String()[1:],
+		Record: record,
+	}
 	_, err, simErr, _ = app.DeliverMsg(msg, priv1)
 	require.NoError(t, err)
 	require.Error(t, simErr)
@@ -806,28 +826,44 @@ func TestFailureCases(t *testing.T) {
 	// Test for MsgChangeIscnRecordOwnership
 
 	// wrong sender address checksum
-	msg = &types.MsgChangeIscnRecordOwnership{"cosmos1ww3qews2y5jxe8apw2zt8stqqrcu2tptejfwag", iscnId2.String(), addr3.String()}
+	msg = &types.MsgChangeIscnRecordOwnership{
+		From:     "cosmos1ww3qews2y5jxe8apw2zt8stqqrcu2tptejfwag",
+		IscnId:   iscnId2.String(),
+		NewOwner: addr3.String(),
+	}
 	_, err, simErr, _ = app.DeliverMsg(msg, priv2)
 	require.NoError(t, err)
 	require.Error(t, simErr)
 	require.True(t, errors.Is(simErr, sdkerrors.ErrInvalidAddress))
 
 	// wrong sender address prefix
-	msg = &types.MsgChangeIscnRecordOwnership{"iaa1nr4zjtg87mtgvf2zetvmny8htuxplsduyc0h9f", iscnId2.String(), addr3.String()}
+	msg = &types.MsgChangeIscnRecordOwnership{
+		From:     "iaa1nr4zjtg87mtgvf2zetvmny8htuxplsduyc0h9f",
+		IscnId:   iscnId2.String(),
+		NewOwner: addr3.String(),
+	}
 	_, err, simErr, _ = app.DeliverMsg(msg, priv2)
 	require.NoError(t, err)
 	require.Error(t, simErr)
 	require.True(t, errors.Is(simErr, sdkerrors.ErrInvalidAddress))
 
 	// wrong new owner address checksum
-	msg = &types.MsgChangeIscnRecordOwnership{addr2.String(), iscnId2.String(), "cosmos1ww3qews2y5jxe8apw2zt8stqqrcu2tptejfwag"}
+	msg = &types.MsgChangeIscnRecordOwnership{
+		From:     addr2.String(),
+		IscnId:   iscnId2.String(),
+		NewOwner: "cosmos1ww3qews2y5jxe8apw2zt8stqqrcu2tptejfwag",
+	}
 	_, err, simErr, _ = app.DeliverMsg(msg, priv2)
 	require.NoError(t, err)
 	require.Error(t, simErr)
 	require.True(t, errors.Is(simErr, sdkerrors.ErrInvalidAddress))
 
 	// wrong sender address prefix
-	msg = &types.MsgChangeIscnRecordOwnership{addr2.String(), iscnId2.String(), "iaa1nr4zjtg87mtgvf2zetvmny8htuxplsduyc0h9f"}
+	msg = &types.MsgChangeIscnRecordOwnership{
+		From:     addr2.String(),
+		IscnId:   iscnId2.String(),
+		NewOwner: "iaa1nr4zjtg87mtgvf2zetvmny8htuxplsduyc0h9f",
+	}
 	_, err, simErr, _ = app.DeliverMsg(msg, priv2)
 	require.NoError(t, err)
 	require.Error(t, simErr)
@@ -863,7 +899,7 @@ func TestFailureCases(t *testing.T) {
 }
 
 func TestSimulation(t *testing.T) {
-	const seedCount = 10
+	const testCount = 10
 	const txCount = 100
 
 	goodRecord := func() types.IscnRecord {
@@ -874,7 +910,7 @@ func TestSimulation(t *testing.T) {
 		}
 	}
 
-	testWithRand := func(r *rand.Rand) {
+	testWithRand := func() {
 		prefixArr := []string{}
 		contentIdRecordMap := map[string]types.ContentIdRecord{}
 		notesMap := map[string]string{}
@@ -892,14 +928,14 @@ func TestSimulation(t *testing.T) {
 			addr3.String(): priv3,
 		}
 
-		doRandomTx := func(r *rand.Rand, app *TestingApp) {
-			x := r.Intn(100)
+		doRandomTx := func(app *TestingApp) {
+			x := genRandInt(100)
 			if x < 50 || len(contentIdRecordMap) == 0 {
-				key := keys[r.Intn(len(keys))]
+				key := keys[genRandInt(len(keys))]
 				privKey := key.PrivKey
 				addr := key.Address
 				record := goodRecord()
-				notes := fmt.Sprintf("create notes %d", r.Int63())
+				notes := fmt.Sprintf("create notes %d", genRandInt(math.MaxInt64-1))
 				record.RecordNotes = notes
 				msg := types.NewMsgCreateIscnRecord(addr, &record)
 				res := app.DeliverMsgNoError(t, msg, privKey)
@@ -913,7 +949,7 @@ func TestSimulation(t *testing.T) {
 				}
 				notesMap[iscnId.String()] = notes
 			} else {
-				prefix := prefixArr[r.Intn(len(contentIdRecordMap))]
+				prefix := prefixArr[genRandInt(len(contentIdRecordMap))]
 				iscnId, err := types.ParseIscnId(prefix)
 				require.NoError(t, err)
 				contentIdRecord := contentIdRecordMap[prefix]
@@ -922,7 +958,7 @@ func TestSimulation(t *testing.T) {
 				iscnId.Version = contentIdRecord.LatestVersion
 				if x < 80 {
 					record := goodRecord()
-					notes := fmt.Sprintf("update notes %d", r.Int63())
+					notes := fmt.Sprintf("update notes %d", genRandInt(math.MaxInt64-1))
 					record.RecordNotes = notes
 					msg := types.NewMsgUpdateIscnRecord(owner, iscnId, &record)
 					app.DeliverMsgNoError(t, msg, privKey)
@@ -931,7 +967,7 @@ func TestSimulation(t *testing.T) {
 					iscnId.Version++
 					notesMap[iscnId.String()] = notes
 				} else {
-					newOwner := keys[r.Intn(len(keys))].Address
+					newOwner := keys[genRandInt(len(keys))].Address
 					msg := types.NewMsgChangeIscnRecordOwnership(owner, iscnId, newOwner)
 					app.DeliverMsgNoError(t, msg, privKey)
 					contentIdRecord.OwnerAddressBytes = newOwner.Bytes()
@@ -973,7 +1009,7 @@ func TestSimulation(t *testing.T) {
 		}
 		app := SetupTestApp(genesisBalances)
 		for i := 0; i < txCount; i++ {
-			doRandomTx(r, app)
+			doRandomTx(app)
 		}
 		ctx := app.SetForQuery()
 		verifyState(app)
@@ -986,15 +1022,22 @@ func TestSimulation(t *testing.T) {
 
 		app.SetForTx()
 		for i := 0; i < txCount; i++ {
-			doRandomTx(r, app)
+			doRandomTx(app)
 		}
 
 		app.SetForQuery()
 		verifyState(app)
 	}
 
-	for seed := int64(0); seed < seedCount; seed++ {
-		r := rand.New(rand.NewSource(seed))
-		testWithRand(r)
+	for count := int64(0); count < testCount; count++ {
+		testWithRand()
 	}
+}
+
+func genRandInt(max int) int {
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		panic(err)
+	}
+	return int(n.Int64())
 }

@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -23,8 +26,6 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -167,12 +168,12 @@ $ %s migrate /path/to/genesis.json --%s=1000000 --%s=likecoin-chain-fotan --%s=2
 			}
 
 			outputPath, _ := cmd.Flags().GetString(flagOutput)
-			err = ioutil.WriteFile(outputPath, sortedBz, 0o644)
+			err = ioutil.WriteFile(outputPath, sortedBz, 0o644) // nolint:gosec
 			if err != nil {
 				return errors.Wrap(err, "failed to write JSON genesis doc")
 			}
 
-			fmt.Printf("Genesis doc written to %s.\n", outputPath)
+			fmt.Printf("Genesis doc written to %s.\n", outputPath) // nolint:revive
 			return nil
 		},
 	}
