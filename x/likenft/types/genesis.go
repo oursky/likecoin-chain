@@ -2,6 +2,8 @@ package types
 
 import (
 	"fmt"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // DefaultIndex is the default capability global index
@@ -10,7 +12,8 @@ const DefaultIndex uint64 = 1
 // DefaultGenesis returns the default Capability genesis state
 func DefaultGenesis() *GenesisState {
 	return &GenesisState{
-		ClassesByISCNList: []ClassesByISCN{},
+		ClassesByISCNList:    []ClassesByISCN{},
+		ClassesByAccountList: []ClassesByAccount{},
 		// this line is used by starport scaffolding # genesis/types/default
 		Params: DefaultParams(),
 	}
@@ -28,6 +31,22 @@ func (gs GenesisState) Validate() error {
 			return fmt.Errorf("duplicated index for classesByISCN")
 		}
 		classesByISCNIndexMap[index] = struct{}{}
+	}
+	// Check for duplicated index in classesByAccount
+	classesByAccountIndexMap := make(map[string]struct{})
+
+	for _, elem := range gs.ClassesByAccountList {
+		acc, err := sdk.AccAddressFromBech32(elem.Account)
+		if err != nil {
+			return fmt.Errorf("Invalid account address: %s", err.Error())
+		}
+
+		index := string(ClassesByAccountKey(acc))
+
+		if _, ok := classesByAccountIndexMap[index]; ok {
+			return fmt.Errorf("duplicated index for classesByAccount")
+		}
+		classesByAccountIndexMap[index] = struct{}{}
 	}
 	// this line is used by starport scaffolding # genesis/types/validate
 

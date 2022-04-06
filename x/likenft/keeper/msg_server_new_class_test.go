@@ -67,21 +67,24 @@ func TestNewClassNormal(t *testing.T) {
 
 	// Run
 	res, err := msgServer.NewClass(goCtx, &types.MsgNewClass{
-		Creator:      ownerAddress,
-		IscnIdPrefix: iscnId.Prefix.String(),
-		Name:         name,
-		Symbol:       symbol,
-		Description:  description,
-		Uri:          uri,
-		UriHash:      uriHash,
-		Metadata:     metadata,
-		Burnable:     burnable,
+		Creator: ownerAddress,
+		Parent: types.ClassParentInput{
+			Type:         types.ClassParentType_ISCN,
+			IscnIdPrefix: iscnId.Prefix.String(),
+		},
+		Name:        name,
+		Symbol:      symbol,
+		Description: description,
+		Uri:         uri,
+		UriHash:     uriHash,
+		Metadata:    metadata,
+		Burnable:    burnable,
 	})
 
 	// Check output
 	require.NoError(t, err)
-	expectedClassId, _ := types.NewClassId(iscnId.Prefix.String(), 0)
-	require.Equal(t, *expectedClassId, res.Class.Id)
+	expectedClassId, _ := types.NewClassIdForISCN(iscnId.Prefix.String(), 0)
+	require.Equal(t, expectedClassId, res.Class.Id)
 	require.Equal(t, name, res.Class.Name)
 	require.Equal(t, symbol, res.Class.Symbol)
 	require.Equal(t, description, res.Class.Description)
@@ -92,8 +95,8 @@ func TestNewClassNormal(t *testing.T) {
 	err = classData.Unmarshal(res.Class.Data.Value)
 	require.NoErrorf(t, err, "Error unmarshal class data")
 	require.Equal(t, metadata, classData.Metadata)
-	require.Equal(t, iscnId.Prefix.String(), classData.IscnIdPrefix)
-	require.Equal(t, iscnLatestVersion, classData.IscnVersionAtMint)
+	require.Equal(t, iscnId.Prefix.String(), classData.Parent.IscnIdPrefix)
+	require.Equal(t, iscnLatestVersion, classData.Parent.IscnVersionAtMint)
 	require.Equal(t, burnable, classData.Config.Burnable)
 
 	// Check mock was called as expected
@@ -139,15 +142,18 @@ func TestNewClassInvalidIscn(t *testing.T) {
 
 	// Run
 	res, err := msgServer.NewClass(goCtx, &types.MsgNewClass{
-		Creator:      ownerAddress,
-		IscnIdPrefix: iscnId,
-		Name:         name,
-		Symbol:       symbol,
-		Description:  description,
-		Uri:          uri,
-		UriHash:      uriHash,
-		Metadata:     metadata,
-		Burnable:     burnable,
+		Creator: ownerAddress,
+		Parent: types.ClassParentInput{
+			Type:         types.ClassParentType_ISCN,
+			IscnIdPrefix: iscnId,
+		},
+		Name:        name,
+		Symbol:      symbol,
+		Description: description,
+		Uri:         uri,
+		UriHash:     uriHash,
+		Metadata:    metadata,
+		Burnable:    burnable,
 	})
 
 	// Check output
@@ -204,15 +210,18 @@ func TestNewClassNonExistentIscn(t *testing.T) {
 
 	// Run
 	res, err := msgServer.NewClass(goCtx, &types.MsgNewClass{
-		Creator:      ownerAddress,
-		IscnIdPrefix: iscnId.Prefix.String(),
-		Name:         name,
-		Symbol:       symbol,
-		Description:  description,
-		Uri:          uri,
-		UriHash:      uriHash,
-		Metadata:     metadata,
-		Burnable:     burnable,
+		Creator: ownerAddress,
+		Parent: types.ClassParentInput{
+			Type:         types.ClassParentType_ISCN,
+			IscnIdPrefix: iscnId.Prefix.String(),
+		},
+		Name:        name,
+		Symbol:      symbol,
+		Description: description,
+		Uri:         uri,
+		UriHash:     uriHash,
+		Metadata:    metadata,
+		Burnable:    burnable,
 	})
 
 	// Check output
@@ -271,15 +280,18 @@ func TestNewClassInvalidUserAddress(t *testing.T) {
 
 	// Run
 	res, err := msgServer.NewClass(goCtx, &types.MsgNewClass{
-		Creator:      "invalid address",
-		IscnIdPrefix: iscnId.Prefix.String(),
-		Name:         name,
-		Symbol:       symbol,
-		Description:  description,
-		Uri:          uri,
-		UriHash:      uriHash,
-		Metadata:     metadata,
-		Burnable:     burnable,
+		Creator: "invalid address",
+		Parent: types.ClassParentInput{
+			Type:         types.ClassParentType_ISCN,
+			IscnIdPrefix: iscnId.Prefix.String(),
+		},
+		Name:        name,
+		Symbol:      symbol,
+		Description: description,
+		Uri:         uri,
+		UriHash:     uriHash,
+		Metadata:    metadata,
+		Burnable:    burnable,
 	})
 
 	// Check output
@@ -340,15 +352,18 @@ func TestNewClassUserNotIscnOwner(t *testing.T) {
 
 	// Run
 	res, err := msgServer.NewClass(goCtx, &types.MsgNewClass{
-		Creator:      ownerAddress,
-		IscnIdPrefix: iscnId.Prefix.String(),
-		Name:         name,
-		Symbol:       symbol,
-		Description:  description,
-		Uri:          uri,
-		UriHash:      uriHash,
-		Metadata:     metadata,
-		Burnable:     burnable,
+		Creator: ownerAddress,
+		Parent: types.ClassParentInput{
+			Type:         types.ClassParentType_ISCN,
+			IscnIdPrefix: iscnId.Prefix.String(),
+		},
+		Name:        name,
+		Symbol:      symbol,
+		Description: description,
+		Uri:         uri,
+		UriHash:     uriHash,
+		Metadata:    metadata,
+		Burnable:    burnable,
 	})
 
 	// Check output

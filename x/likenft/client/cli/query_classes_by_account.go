@@ -10,9 +10,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func CmdListClassesByISCN() *cobra.Command {
+func CmdListClassesByAccount() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "iscn-index",
+		Use:   "account-index",
 		Short: "Enumerate all ISCN to NFT classes relation records",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := client.GetClientContextFromCmd(cmd)
@@ -24,11 +24,11 @@ func CmdListClassesByISCN() *cobra.Command {
 
 			queryClient := types.NewQueryClient(clientCtx)
 
-			params := &types.QueryClassesByISCNIndexRequest{
+			params := &types.QueryClassesByAccountIndexRequest{
 				Pagination: pageReq,
 			}
 
-			res, err := queryClient.ClassesByISCNIndex(context.Background(), params)
+			res, err := queryClient.ClassesByAccountIndex(context.Background(), params)
 			if err != nil {
 				return err
 			}
@@ -43,10 +43,10 @@ func CmdListClassesByISCN() *cobra.Command {
 	return cmd
 }
 
-func CmdShowClassesByISCN() *cobra.Command {
+func CmdShowClassesByAccount() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "iscn-classes [iscn-id-prefix]",
-		Short: "Query NFT classes related to an ISCN",
+		Use:   "account-classes [account]",
+		Short: "Query NFT classes related to an account",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			clientCtx := client.GetClientContextFromCmd(cmd)
@@ -58,14 +58,14 @@ func CmdShowClassesByISCN() *cobra.Command {
 
 			queryClient := types.NewQueryClient(clientCtx)
 
-			argIscnIdPrefix := args[0]
+			argAccount := args[0]
 
-			params := &types.QueryClassesByISCNRequest{
-				IscnIdPrefix: argIscnIdPrefix,
-				Pagination:   pageReq,
+			params := &types.QueryClassesByAccountRequest{
+				Account:    argAccount,
+				Pagination: pageReq,
 			}
 
-			res, err := queryClient.ClassesByISCN(context.Background(), params)
+			res, err := queryClient.ClassesByAccount(context.Background(), params)
 			if err != nil {
 				return err
 			}

@@ -7,7 +7,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/likecoin/likechain/backport/cosmos-sdk/v0.46.0-alpha2/x/nft"
-	iscntypes "github.com/likecoin/likechain/x/iscn/types"
 	"github.com/likecoin/likechain/x/likenft/types"
 )
 
@@ -26,49 +25,34 @@ func (k msgServer) UpdateClass(goCtx context.Context, msg *types.MsgUpdateClass)
 		return nil, types.ErrCannotUpdateClassWithMintedTokens.Wrap("Cannot update class with minted tokens")
 	}
 
-	// Verify iscn exists and is related
+	// Check class parent relation is valid and current user is owner
+
 	var classData types.ClassData
 	if err := k.cdc.Unmarshal(class.Data.Value, &classData); err != nil {
 		return nil, types.ErrFailedToUnmarshalData.Wrapf(err.Error())
 	}
-	classesByISCN, found := k.GetClassesByISCN(ctx, classData.IscnIdPrefix)
-	if !found {
-		return nil, types.ErrNftClassNotRelatedToAnyIscn.Wrapf("NFT claims it is related to ISCN %s but no mapping is found", classData.IscnIdPrefix)
-	}
-	isRelated := false
-	for _, validClassId := range classesByISCN.ClassIds {
-		if validClassId == class.Id {
-			// claimed relation is valid
-			isRelated = true
-			break
-		}
-	}
-	if !isRelated {
-		return nil, types.ErrNftClassNotRelatedToAnyIscn.Wrapf("NFT claims it is related to ISCN %s but no mapping is found", classData.IscnIdPrefix)
+
+	if err := k.validateClassParentRelation(ctx, class.Id, classData.Parent); err != nil {
+		return nil, err
 	}
 
-	// Verify user is owner of iscn and thus the nft class
-	iscnId, err := iscntypes.ParseIscnId(classData.IscnIdPrefix)
+	// refresh parent info (e.g. iscn latest version) & check ownership
+	parent, err := k.resolveClassParentAndOwner(ctx, classData.Parent.ToInput(), classData.Parent.Account)
 	if err != nil {
-		return nil, types.ErrInvalidIscnId.Wrapf("%s", err.Error())
-	}
-	iscnRecord := k.iscnKeeper.GetContentIdRecord(ctx, iscnId.Prefix)
-	if iscnRecord == nil {
-		return nil, types.ErrIscnRecordNotFound.Wrapf("ISCN %s not found", iscnId.Prefix.String())
+		return nil, err
 	}
 	userAddress, err := sdk.AccAddressFromBech32(msg.Creator)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("%s", err.Error())
 	}
-	if !iscnRecord.OwnerAddress().Equals(userAddress) {
-		return nil, sdkerrors.ErrUnauthorized.Wrapf("%s is not the owner of the ISCN %s", msg.Creator, iscnId.Prefix.String())
+	if !parent.Owner.Equals(userAddress) {
+		return nil, sdkerrors.ErrUnauthorized.Wrapf("%s is not authorized", userAddress.String())
 	}
 
 	// Update class
 	classData = types.ClassData{
-		Metadata:          msg.Metadata,
-		IscnIdPrefix:      iscnId.Prefix.String(),
-		IscnVersionAtMint: iscnRecord.LatestVersion,
+		Metadata: msg.Metadata,
+		Parent:   parent.ClassParent,
 		Config: types.ClassConfig{
 			Burnable: msg.Burnable,
 		},
@@ -92,9 +76,9 @@ func (k msgServer) UpdateClass(goCtx context.Context, msg *types.MsgUpdateClass)
 
 	// Emit event
 	ctx.EventManager().EmitTypedEvent(&types.EventUpdateClass{
-		IscnIdPrefix: iscnId.Prefix.String(),
-		ClassId:      class.Id,
-		Owner:        iscnRecord.OwnerAddress().String(),
+		ClassId:            class.Id,
+		ParentIscnIdPrefix: classData.Parent.IscnIdPrefix,
+		ParentAccount:      classData.Parent.Account,
 	})
 
 	return &types.MsgUpdateClassResponse{

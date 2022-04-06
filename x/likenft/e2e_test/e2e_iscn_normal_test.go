@@ -1,9 +1,8 @@
-package cli_test
+package e2e_test
 
 import (
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
@@ -20,117 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func parseEventCreateClass(res sdk.TxResponse) types.EventNewClass {
-	actualEvent := types.EventNewClass{}
-
-ParseEventCreateClass:
-	for _, log := range res.Logs {
-		for _, event := range log.Events {
-			if event.Type == "likecoin.likechain.likenft.EventNewClass" {
-				for _, attr := range event.Attributes {
-					if attr.Key == "iscnIdPrefix" {
-						actualEvent.IscnIdPrefix = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "classId" {
-						actualEvent.ClassId = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "owner" {
-						actualEvent.Owner = strings.Trim(attr.Value, "\"")
-					}
-				}
-				break ParseEventCreateClass
-			}
-		}
-	}
-
-	return actualEvent
-}
-
-func parseEventUpdateClass(res sdk.TxResponse) types.EventUpdateClass {
-	actualEvent := types.EventUpdateClass{}
-
-ParseEventUpdateClass:
-	for _, log := range res.Logs {
-		for _, event := range log.Events {
-			if event.Type == "likecoin.likechain.likenft.EventUpdateClass" {
-				for _, attr := range event.Attributes {
-					if attr.Key == "iscnIdPrefix" {
-						actualEvent.IscnIdPrefix = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "classId" {
-						actualEvent.ClassId = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "owner" {
-						actualEvent.Owner = strings.Trim(attr.Value, "\"")
-					}
-				}
-				break ParseEventUpdateClass
-			}
-		}
-	}
-
-	return actualEvent
-}
-
-func parseEventMintNFT(res sdk.TxResponse) types.EventMintNFT {
-	actualEvent := types.EventMintNFT{}
-
-ParseEventMintNFT:
-	for _, log := range res.Logs {
-		for _, event := range log.Events {
-			if event.Type == "likecoin.likechain.likenft.EventMintNFT" {
-				for _, attr := range event.Attributes {
-					if attr.Key == "iscnIdPrefix" {
-						actualEvent.IscnIdPrefix = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "classId" {
-						actualEvent.ClassId = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "nftId" {
-						actualEvent.NftId = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "owner" {
-						actualEvent.Owner = strings.Trim(attr.Value, "\"")
-					}
-				}
-				break ParseEventMintNFT
-			}
-		}
-	}
-
-	return actualEvent
-}
-
-func parseEventBurnNFT(res sdk.TxResponse) types.EventBurnNFT {
-	actualEvent := types.EventBurnNFT{}
-
-ParseEventBurnNFT:
-	for _, log := range res.Logs {
-		for _, event := range log.Events {
-			if event.Type == "likecoin.likechain.likenft.EventBurnNFT" {
-				for _, attr := range event.Attributes {
-					if attr.Key == "iscnIdPrefix" {
-						actualEvent.IscnIdPrefix = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "classId" {
-						actualEvent.ClassId = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "nftId" {
-						actualEvent.NftId = strings.Trim(attr.Value, "\"")
-					}
-					if attr.Key == "owner" {
-						actualEvent.Owner = strings.Trim(attr.Value, "\"")
-					}
-				}
-				break ParseEventBurnNFT
-			}
-		}
-	}
-
-	return actualEvent
-}
-
-func TestEndToEndNormal(t *testing.T) {
+func TestEndToEndIscnNormal(t *testing.T) {
 	tempDir := t.TempDir() // swap to ioutil for longlived files when debug
 	cfg := network.DefaultConfig()
 
@@ -295,7 +184,7 @@ FindIscnIdPrefix:
 	out, err = clitestutil.ExecTestCLICmd(
 		ctx,
 		cli.CmdNewClass(),
-		append([]string{iscnIdPrefix, newClassFile.Name()}, txArgs...),
+		append([]string{fmt.Sprintf("--iscnIdPrefix=%s", iscnIdPrefix), newClassFile.Name()}, txArgs...),
 	)
 	require.NoError(t, err)
 
@@ -303,9 +192,9 @@ FindIscnIdPrefix:
 	res = sdk.TxResponse{}
 	cfg.Codec.MustUnmarshalJSON(out.Bytes(), &res)
 	actualCreateEvent := parseEventCreateClass(res)
-	require.Equal(t, iscnIdPrefix, actualCreateEvent.IscnIdPrefix)
 	require.NotEmpty(t, actualCreateEvent.ClassId)
-	require.Equal(t, userAddress.String(), actualCreateEvent.Owner)
+	require.Equal(t, iscnIdPrefix, actualCreateEvent.ParentIscnIdPrefix)
+	require.Empty(t, actualCreateEvent.ParentAccount)
 
 	// Query class
 	out, err = clitestutil.ExecTestCLICmd(
@@ -336,8 +225,14 @@ FindIscnIdPrefix:
 	actualMetadata, err := classData.Metadata.Normalize()
 	require.NoError(t, err)
 	require.Equal(t, expectedMetadata, actualMetadata)
-	require.Equal(t, false, classData.Config.Burnable)
-	require.Equal(t, iscnIdPrefix, classData.IscnIdPrefix)
+	require.Equal(t, types.ClassConfig{
+		Burnable: false,
+	}, classData.Config)
+	require.Equal(t, types.ClassParent{
+		Type:              types.ClassParentType_ISCN,
+		IscnIdPrefix:      iscnIdPrefix,
+		IscnVersionAtMint: 1,
+	}, classData.Parent)
 
 	// Update class
 	out, err = clitestutil.ExecTestCLICmd(
@@ -351,9 +246,9 @@ FindIscnIdPrefix:
 	res = sdk.TxResponse{}
 	cfg.Codec.MustUnmarshalJSON(out.Bytes(), &res)
 	actualUpdateEvent := parseEventUpdateClass(res)
-	require.Equal(t, iscnIdPrefix, actualUpdateEvent.IscnIdPrefix)
 	require.Equal(t, class.Id, actualUpdateEvent.ClassId)
-	require.Equal(t, userAddress.String(), actualUpdateEvent.Owner)
+	require.Equal(t, iscnIdPrefix, actualUpdateEvent.ParentIscnIdPrefix)
+	require.Empty(t, actualUpdateEvent.ParentAccount)
 
 	// Query updated class
 	out, err = clitestutil.ExecTestCLICmd(
@@ -387,8 +282,14 @@ FindIscnIdPrefix:
 	actualUpdatedMetadata, err := updatedClassData.Metadata.Normalize()
 	require.NoError(t, err)
 	require.Equal(t, expectedUpdatedMetadata, actualUpdatedMetadata)
-	require.Equal(t, true, updatedClassData.Config.Burnable)
-	require.Equal(t, iscnIdPrefix, updatedClassData.IscnIdPrefix)
+	require.Equal(t, types.ClassConfig{
+		Burnable: true,
+	}, updatedClassData.Config)
+	require.Equal(t, types.ClassParent{
+		Type:              types.ClassParentType_ISCN,
+		IscnIdPrefix:      iscnIdPrefix,
+		IscnVersionAtMint: 1,
+	}, classData.Parent)
 
 	// Mint NFT
 	out, err = clitestutil.ExecTestCLICmd(
@@ -402,10 +303,11 @@ FindIscnIdPrefix:
 	res = sdk.TxResponse{}
 	cfg.Codec.MustUnmarshalJSON(out.Bytes(), &res)
 	actualMintEvent := parseEventMintNFT(res)
-	require.Equal(t, iscnIdPrefix, actualMintEvent.IscnIdPrefix)
 	require.Equal(t, class.Id, actualMintEvent.ClassId)
 	require.Equal(t, "token1", actualMintEvent.NftId)
 	require.Equal(t, userAddress.String(), actualMintEvent.Owner)
+	require.Equal(t, iscnIdPrefix, actualMintEvent.ClassParentIscnIdPrefix)
+	require.Empty(t, actualMintEvent.ClassParentAccount)
 
 	// Query NFT
 	out, err = clitestutil.ExecTestCLICmd(
@@ -426,7 +328,7 @@ FindIscnIdPrefix:
 	nftData := types.NFTData{}
 	err = nftData.Unmarshal(nftRes.Nft.Data.Value)
 	require.NoError(t, err)
-	require.Equal(t, iscnIdPrefix, nftData.IscnIdPrefix)
+	require.Equal(t, iscnIdPrefix, nftData.ClassParent.IscnIdPrefix)
 	expectedNftMetadata, err := types.JsonInput(`{
 	"name": "Sleepy Coffee #1",
 	"description": "Coffee is very sleepy", 
@@ -450,10 +352,11 @@ FindIscnIdPrefix:
 	res = sdk.TxResponse{}
 	cfg.Codec.MustUnmarshalJSON(out.Bytes(), &res)
 	actualBurnEvent := parseEventBurnNFT(res)
-	require.Equal(t, iscnIdPrefix, actualBurnEvent.IscnIdPrefix)
 	require.Equal(t, class.Id, actualBurnEvent.ClassId)
 	require.Equal(t, "token1", actualBurnEvent.NftId)
 	require.Equal(t, userAddress.String(), actualBurnEvent.Owner)
+	require.Equal(t, iscnIdPrefix, actualMintEvent.ClassParentIscnIdPrefix)
+	require.Empty(t, actualMintEvent.ClassParentAccount)
 
 	// Check NFT is burnt
 	_, err = clitestutil.ExecTestCLICmd(

@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 
@@ -20,31 +19,28 @@ import (
 // Prevent strconv unused error
 var _ = strconv.IntSize
 
-func TestClassesByISCNQuerySingle(t *testing.T) {
+func TestClassesByAccountQuerySingle(t *testing.T) {
 	keeper, ctx := keepertest.LikenftKeeper(t)
 	wctx := sdk.WrapSDKContext(ctx)
-	msgs := createNClassesByISCN(keeper, ctx, 2)
-	// Note: currently does not test pagination (class id arrays are empty)
-	// Effort needed to seed data via mock (similar to e2e test)
-	// Pagination is already covered by unit test and cli test
-	classesByMsgs := testutil.BatchMakeDummyNFTClassesForISCN(msgs)
+	msgs, _ := createNClassesByAccount(keeper, ctx, 2)
+	classesByMsgs := testutil.BatchMakeDummyNFTClassesForAccount(msgs)
 	for _, tc := range []struct {
 		desc     string
-		request  *types.QueryClassesByISCNRequest
-		response *types.QueryClassesByISCNResponse
+		request  *types.QueryClassesByAccountRequest
+		response *types.QueryClassesByAccountResponse
 		err      error
 	}{
 		{
 			desc: "First",
-			request: &types.QueryClassesByISCNRequest{
-				IscnIdPrefix: msgs[0].IscnIdPrefix,
+			request: &types.QueryClassesByAccountRequest{
+				Account: msgs[0].Account,
 				Pagination: &query.PageRequest{
 					Limit: uint64(len(classesByMsgs[0])),
 				},
 			},
-			response: &types.QueryClassesByISCNResponse{
-				IscnIdPrefix: msgs[0].IscnIdPrefix,
-				Classes:      classesByMsgs[0],
+			response: &types.QueryClassesByAccountResponse{
+				Account: msgs[0].Account,
+				Classes: classesByMsgs[0],
 				Pagination: &query.PageResponse{
 					NextKey: nil,
 					Total:   uint64(len(classesByMsgs[0])),
@@ -53,32 +49,15 @@ func TestClassesByISCNQuerySingle(t *testing.T) {
 		},
 		{
 			desc: "Second",
-			request: &types.QueryClassesByISCNRequest{
-				IscnIdPrefix: msgs[1].IscnIdPrefix,
+			request: &types.QueryClassesByAccountRequest{
+				Account: msgs[1].Account,
 				Pagination: &query.PageRequest{
 					Limit: uint64(len(classesByMsgs[0])),
 				},
 			},
-			response: &types.QueryClassesByISCNResponse{
-				IscnIdPrefix: msgs[1].IscnIdPrefix,
-				Classes:      classesByMsgs[1],
-				Pagination: &query.PageResponse{
-					NextKey: nil,
-					Total:   uint64(len(classesByMsgs[0])),
-				},
-			},
-		},
-		{
-			desc: "Full id",
-			request: &types.QueryClassesByISCNRequest{
-				IscnIdPrefix: fmt.Sprintf("%s/1", msgs[1].IscnIdPrefix),
-				Pagination: &query.PageRequest{
-					Limit: uint64(len(classesByMsgs[0])),
-				},
-			},
-			response: &types.QueryClassesByISCNResponse{
-				IscnIdPrefix: msgs[1].IscnIdPrefix,
-				Classes:      classesByMsgs[1],
+			response: &types.QueryClassesByAccountResponse{
+				Account: msgs[1].Account,
+				Classes: classesByMsgs[1],
 				Pagination: &query.PageResponse{
 					NextKey: nil,
 					Total:   uint64(len(classesByMsgs[0])),
@@ -87,8 +66,8 @@ func TestClassesByISCNQuerySingle(t *testing.T) {
 		},
 		{
 			desc: "KeyNotFound",
-			request: &types.QueryClassesByISCNRequest{
-				IscnIdPrefix: "iscn://likecoin-chain/100000",
+			request: &types.QueryClassesByAccountRequest{
+				Account: "cosmos1kznrznww4pd6gx0zwrpthjk68fdmqypjpkj5hp",
 			},
 			err: status.Error(codes.InvalidArgument, "not found"),
 		},
@@ -98,7 +77,7 @@ func TestClassesByISCNQuerySingle(t *testing.T) {
 		},
 	} {
 		t.Run(tc.desc, func(t *testing.T) {
-			response, err := keeper.ClassesByISCN(wctx, tc.request)
+			response, err := keeper.ClassesByAccount(wctx, tc.request)
 			if tc.err != nil {
 				require.ErrorIs(t, err, tc.err)
 			} else {
@@ -112,13 +91,13 @@ func TestClassesByISCNQuerySingle(t *testing.T) {
 	}
 }
 
-func TestClassesByISCNQueryPaginated(t *testing.T) {
+func TestClassesByAccountQueryPaginated(t *testing.T) {
 	keeper, ctx := keepertest.LikenftKeeper(t)
 	wctx := sdk.WrapSDKContext(ctx)
-	msgs := createNClassesByISCN(keeper, ctx, 5)
+	msgs, _ := createNClassesByAccount(keeper, ctx, 5)
 
-	request := func(next []byte, offset, limit uint64, total bool) *types.QueryClassesByISCNIndexRequest {
-		return &types.QueryClassesByISCNIndexRequest{
+	request := func(next []byte, offset, limit uint64, total bool) *types.QueryClassesByAccountIndexRequest {
+		return &types.QueryClassesByAccountIndexRequest{
 			Pagination: &query.PageRequest{
 				Key:        next,
 				Offset:     offset,
@@ -130,12 +109,12 @@ func TestClassesByISCNQueryPaginated(t *testing.T) {
 	t.Run("ByOffset", func(t *testing.T) {
 		step := 2
 		for i := 0; i < len(msgs); i += step {
-			resp, err := keeper.ClassesByISCNIndex(wctx, request(nil, uint64(i), uint64(step), false))
+			resp, err := keeper.ClassesByAccountIndex(wctx, request(nil, uint64(i), uint64(step), false))
 			require.NoError(t, err)
-			require.LessOrEqual(t, len(resp.ClassesByISCN), step)
+			require.LessOrEqual(t, len(resp.ClassesByAccount), step)
 			require.Subset(t,
 				nullify.Fill(msgs),
-				nullify.Fill(resp.ClassesByISCN),
+				nullify.Fill(resp.ClassesByAccount),
 			)
 		}
 	})
@@ -143,27 +122,27 @@ func TestClassesByISCNQueryPaginated(t *testing.T) {
 		step := 2
 		var next []byte
 		for i := 0; i < len(msgs); i += step {
-			resp, err := keeper.ClassesByISCNIndex(wctx, request(next, 0, uint64(step), false))
+			resp, err := keeper.ClassesByAccountIndex(wctx, request(next, 0, uint64(step), false))
 			require.NoError(t, err)
-			require.LessOrEqual(t, len(resp.ClassesByISCN), step)
+			require.LessOrEqual(t, len(resp.ClassesByAccount), step)
 			require.Subset(t,
 				nullify.Fill(msgs),
-				nullify.Fill(resp.ClassesByISCN),
+				nullify.Fill(resp.ClassesByAccount),
 			)
 			next = resp.Pagination.NextKey
 		}
 	})
 	t.Run("Total", func(t *testing.T) {
-		resp, err := keeper.ClassesByISCNIndex(wctx, request(nil, 0, 0, true))
+		resp, err := keeper.ClassesByAccountIndex(wctx, request(nil, 0, 0, true))
 		require.NoError(t, err)
 		require.Equal(t, len(msgs), int(resp.Pagination.Total))
 		require.ElementsMatch(t,
 			nullify.Fill(msgs),
-			nullify.Fill(resp.ClassesByISCN),
+			nullify.Fill(resp.ClassesByAccount),
 		)
 	})
 	t.Run("InvalidRequest", func(t *testing.T) {
-		_, err := keeper.ClassesByISCNIndex(wctx, nil)
+		_, err := keeper.ClassesByAccountIndex(wctx, nil)
 		require.ErrorIs(t, err, status.Error(codes.InvalidArgument, "invalid request"))
 	})
 }
