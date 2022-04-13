@@ -127,7 +127,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	nhooyr.io/websocket v1.8.6 // indirect
 )
-
+// point sdk to fork and follow replaces at https://github.com/cosmos/cosmos-sdk/blob/v0.44.8/go.mod
 replace (
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.1.7-0.20210622111912-ef00f8ac3d76
 	github.com/cosmos/cosmos-sdk => github.com/likecoin/cosmos-sdk v0.44.8-dual-prefix
