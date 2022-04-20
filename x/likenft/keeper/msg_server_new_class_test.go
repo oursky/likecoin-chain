@@ -50,6 +50,8 @@ func TestNewClassNormal(t *testing.T) {
 }`)
 	burnable := true
 	maxSupply := uint64(5)
+	enablePayToMint := true
+	mintPrice := uint64(1000000000)
 
 	// Mock keeper calls
 	iscnLatestVersion := uint64(2)
@@ -73,14 +75,16 @@ func TestNewClassNormal(t *testing.T) {
 			Type:         types.ClassParentType_ISCN,
 			IscnIdPrefix: iscnId.Prefix.String(),
 		},
-		Name:        name,
-		Symbol:      symbol,
-		Description: description,
-		Uri:         uri,
-		UriHash:     uriHash,
-		Metadata:    metadata,
-		Burnable:    burnable,
-		MaxSupply:   maxSupply,
+		Name:            name,
+		Symbol:          symbol,
+		Description:     description,
+		Uri:             uri,
+		UriHash:         uriHash,
+		Metadata:        metadata,
+		Burnable:        burnable,
+		MaxSupply:       maxSupply,
+		EnablePayToMint: enablePayToMint,
+		MintPrice:       mintPrice,
 	})
 
 	// Check output
@@ -100,8 +104,10 @@ func TestNewClassNormal(t *testing.T) {
 	require.Equal(t, iscnId.Prefix.String(), classData.Parent.IscnIdPrefix)
 	require.Equal(t, iscnLatestVersion, classData.Parent.IscnVersionAtMint)
 	require.Equal(t, types.ClassConfig{
-		Burnable:  burnable,
-		MaxSupply: maxSupply,
+		Burnable:        burnable,
+		MaxSupply:       maxSupply,
+		EnablePayToMint: enablePayToMint,
+		MintPrice:       mintPrice,
 	}, classData.Config)
 
 	// Check mock was called as expected
@@ -145,6 +151,8 @@ func TestNewClassInvalidIscn(t *testing.T) {
 }`)
 	burnable := true
 	maxSupply := uint64(5)
+	enablePayToMint := true
+	mintPrice := uint64(1000000000)
 
 	// Run
 	res, err := msgServer.NewClass(goCtx, &types.MsgNewClass{
@@ -153,14 +161,16 @@ func TestNewClassInvalidIscn(t *testing.T) {
 			Type:         types.ClassParentType_ISCN,
 			IscnIdPrefix: iscnId,
 		},
-		Name:        name,
-		Symbol:      symbol,
-		Description: description,
-		Uri:         uri,
-		UriHash:     uriHash,
-		Metadata:    metadata,
-		Burnable:    burnable,
-		MaxSupply:   maxSupply,
+		Name:            name,
+		Symbol:          symbol,
+		Description:     description,
+		Uri:             uri,
+		UriHash:         uriHash,
+		Metadata:        metadata,
+		Burnable:        burnable,
+		MaxSupply:       maxSupply,
+		EnablePayToMint: enablePayToMint,
+		MintPrice:       mintPrice,
 	})
 
 	// Check output
@@ -209,6 +219,8 @@ func TestNewClassNonExistentIscn(t *testing.T) {
 }`)
 	burnable := true
 	maxSupply := uint64(5)
+	enablePayToMint := true
+	mintPrice := uint64(1000000000)
 
 	// Mock keeper calls
 	iscnKeeper.
@@ -223,14 +235,16 @@ func TestNewClassNonExistentIscn(t *testing.T) {
 			Type:         types.ClassParentType_ISCN,
 			IscnIdPrefix: iscnId.Prefix.String(),
 		},
-		Name:        name,
-		Symbol:      symbol,
-		Description: description,
-		Uri:         uri,
-		UriHash:     uriHash,
-		Metadata:    metadata,
-		Burnable:    burnable,
-		MaxSupply:   maxSupply,
+		Name:            name,
+		Symbol:          symbol,
+		Description:     description,
+		Uri:             uri,
+		UriHash:         uriHash,
+		Metadata:        metadata,
+		Burnable:        burnable,
+		MaxSupply:       maxSupply,
+		EnablePayToMint: enablePayToMint,
+		MintPrice:       mintPrice,
 	})
 
 	// Check output
@@ -278,6 +292,8 @@ func TestNewClassInvalidUserAddress(t *testing.T) {
 }`)
 	burnable := true
 	maxSupply := uint64(5)
+	enablePayToMint := true
+	mintPrice := uint64(1000000000)
 
 	// Mock keeper calls
 	iscnKeeper.
@@ -295,14 +311,16 @@ func TestNewClassInvalidUserAddress(t *testing.T) {
 			Type:         types.ClassParentType_ISCN,
 			IscnIdPrefix: iscnId.Prefix.String(),
 		},
-		Name:        name,
-		Symbol:      symbol,
-		Description: description,
-		Uri:         uri,
-		UriHash:     uriHash,
-		Metadata:    metadata,
-		Burnable:    burnable,
-		MaxSupply:   maxSupply,
+		Name:            name,
+		Symbol:          symbol,
+		Description:     description,
+		Uri:             uri,
+		UriHash:         uriHash,
+		Metadata:        metadata,
+		Burnable:        burnable,
+		MaxSupply:       maxSupply,
+		EnablePayToMint: enablePayToMint,
+		MintPrice:       mintPrice,
 	})
 
 	// Check output
@@ -351,6 +369,8 @@ func TestNewClassUserNotIscnOwner(t *testing.T) {
 }`)
 	burnable := true
 	maxSupply := uint64(5)
+	enablePayToMint := true
+	mintPrice := uint64(1000000000)
 
 	// Mock keeper calls
 	notOwnerAddressBytes := []byte{1, 1, 1, 1, 1, 1, 1, 1}
@@ -369,14 +389,16 @@ func TestNewClassUserNotIscnOwner(t *testing.T) {
 			Type:         types.ClassParentType_ISCN,
 			IscnIdPrefix: iscnId.Prefix.String(),
 		},
-		Name:        name,
-		Symbol:      symbol,
-		Description: description,
-		Uri:         uri,
-		UriHash:     uriHash,
-		Metadata:    metadata,
-		Burnable:    burnable,
-		MaxSupply:   maxSupply,
+		Name:            name,
+		Symbol:          symbol,
+		Description:     description,
+		Uri:             uri,
+		UriHash:         uriHash,
+		Metadata:        metadata,
+		Burnable:        burnable,
+		MaxSupply:       maxSupply,
+		EnablePayToMint: enablePayToMint,
+		MintPrice:       mintPrice,
 	})
 
 	// Check output

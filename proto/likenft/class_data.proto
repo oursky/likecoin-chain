@@ -36,4 +36,6 @@ message ClassParentInput {
 message ClassConfig {
   bool burnable = 1;
   uint64 maxSupply = 2;
+  bool enablePayToMint = 3;
+  uint64 mintPrice = 4;
 }

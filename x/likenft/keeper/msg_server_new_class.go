@@ -59,8 +59,10 @@ func (k msgServer) NewClass(goCtx context.Context, msg *types.MsgNewClass) (*typ
 		Metadata: msg.Metadata,
 		Parent:   parent.ClassParent,
 		Config: types.ClassConfig{
-			Burnable:  msg.Burnable,
-			MaxSupply: msg.MaxSupply,
+			Burnable:        msg.Burnable,
+			MaxSupply:       msg.MaxSupply,
+			EnablePayToMint: msg.EnablePayToMint,
+			MintPrice:       msg.MintPrice,
 		},
 	}
 	classDataInAny, err := cdctypes.NewAnyWithValue(&classData)
