@@ -438,6 +438,7 @@ func NewLikeApp(
 		paramstypes.ModuleName,
 		iscntypes.ModuleName,
 		nft.ModuleName,
+		likenfttypes.ModuleName,
 	)
 
 	app.mm.SetOrderEndBlockers(
@@ -460,6 +461,7 @@ func NewLikeApp(
 		upgradetypes.ModuleName,
 		iscntypes.ModuleName,
 		nft.ModuleName,
+		likenfttypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -585,7 +587,7 @@ func (app *LikeApp) registerUpgradeHandlers() {
 
 	if upgradeInfo.Name == "v3.0.0" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
 		storeUpgrades := storetypes.StoreUpgrades{
-			Added: []string{"nft", "likenft"},
+			Added: []string{nft.ModuleName, likenfttypes.ModuleName},
 		}
 
 		// configure store loader that checks if version == upgradeHeight and applies store upgrades
