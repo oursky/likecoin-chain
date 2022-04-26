@@ -12,10 +12,10 @@ import (
 
 var _ = strconv.Itoa(0)
 
-func CmdMintNFT() *cobra.Command {
+func CmdCreateClaimableNFT() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "mint-nft [class-id] [id] [json-file-input]",
-		Short: "Mint NFT under a class",
+		Use:   "create-claimable-nft [class-id] [id] [json-file-input]",
+		Short: "Create claimable nft content",
 		Example: `JSON file content:
 {
 	"uri": "",
@@ -36,7 +36,7 @@ func CmdMintNFT() *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgMintNFT(
+			msg := types.NewMsgCreateClaimableNFT(
 				clientCtx.GetFromAddress().String(),
 				argClassId,
 				argId,

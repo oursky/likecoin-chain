@@ -12,35 +12,24 @@ import (
 
 var _ = strconv.Itoa(0)
 
-func CmdMintNFT() *cobra.Command {
+func CmdDeleteClaimableNFT() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "mint-nft [class-id] [id] [json-file-input]",
-		Short: "Mint NFT under a class",
-		Example: `JSON file content:
-{
-	"uri": "",
-	"uriHash": "",
-	"metadata": {}
-}`,
-		Args: cobra.ExactArgs(3),
+		Use:   "delete-claimable-nft [class-id] [id]",
+		Short: "Delete claimable nft content",
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			argClassId := args[0]
 			argId := args[1]
-			nftInput, err := readNFTInputJsonFile(args[2])
-			if nftInput == nil || err != nil {
-				return err
-			}
 
 			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
 
-			msg := types.NewMsgMintNFT(
+			msg := types.NewMsgDeleteClaimableNFT(
 				clientCtx.GetFromAddress().String(),
 				argClassId,
 				argId,
-				*nftInput,
 			)
 			if err := msg.ValidateBasic(); err != nil {
 				return err
