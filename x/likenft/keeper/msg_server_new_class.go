@@ -27,6 +27,11 @@ func (k msgServer) NewClass(goCtx context.Context, msg *types.MsgNewClass) (*typ
 		return nil, sdkerrors.ErrUnauthorized.Wrapf("%s is not authorized", userAddress.String())
 	}
 
+	// Verify class config
+	if err := k.validateClassConfig(&msg.Input.Config); err != nil {
+		return nil, err
+	}
+
 	// Make class id
 	var existingClassIds []string
 	var newClassId string
@@ -53,6 +58,9 @@ func (k msgServer) NewClass(goCtx context.Context, msg *types.MsgNewClass) (*typ
 	} else {
 		panic(fmt.Sprintf("Unsupported parent type %s after initial check", parent.Type.String()))
 	}
+
+	// Sort the claim period by start time
+	msg.Input.Config.ClaimPeriods = SortClaimPeriod(msg.Input.Config.ClaimPeriods, true)
 
 	// Create Class
 	classData := types.ClassData{

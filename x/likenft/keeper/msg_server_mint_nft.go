@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"time"
 
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,13 +12,31 @@ import (
 	"github.com/likecoin/likechain/x/likenft/types"
 )
 
-func (k msgServer) mintPayToMintNFT(ctx sdk.Context, classId string, classData *types.ClassData, ownerAddress sdk.AccAddress, userAddress sdk.AccAddress, totalSupply uint64, msg *types.MsgMintNFT) (*nft.NFT, error) {
+func (k msgServer) mintBlindBoxNFT(ctx sdk.Context, classId string, classData *types.ClassData, ownerAddress sdk.AccAddress, userAddress sdk.AccAddress, totalSupply uint64, msg *types.MsgMintNFT) (*nft.NFT, error) {
 	params := k.GetParams(ctx)
 	tokenId := fmt.Sprintf("%s-%d", classId, totalSupply+1)
+
+	// Check if the class has already been revealed or not
+	revealTime := classData.Config.RevealTime
+	if revealTime != nil && revealTime.Before(time.Now()) {
+		return nil, types.ErrFailedToMintNFT.Wrapf(fmt.Sprintf("The class %s has already been revealed", classId))
+	}
+
+	// Resolve the most applicable claim period
+	claimPeriod, err := k.resolveValidClaimPeriod(ctx, classId, *classData, ownerAddress, userAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	if claimPeriod == nil {
+		return nil, sdkerrors.ErrUnauthorized.Wrapf(fmt.Sprintf("The user %s is not allowed to mint the class %s", userAddress, classId))
+	}
 
 	nftData := types.NFTData{
 		Metadata:    types.JsonInput{}, // TODO: add metadata template
 		ClassParent: classData.Parent,
+		IsRevealed:  false,
+		RevealTime:  revealTime,
 	}
 
 	nftDataInAny, err := cdctypes.NewAnyWithValue(&nftData)
@@ -32,14 +51,14 @@ func (k msgServer) mintPayToMintNFT(ctx sdk.Context, classId string, classData *
 		Data:    nftDataInAny,
 	}
 
-	// Pay price to owner if mintPrice is not zero
-	if classData.Config.MintPrice > 0 {
+	// Pay price to owner if mintPrice is not zero and the minter is not the owner
+	if !ownerAddress.Equals(userAddress) && claimPeriod.MintPrice > 0 {
 		spentableTokens := k.bankKeeper.GetBalance(ctx, userAddress, params.GetMintPriceDenom())
-		if spentableTokens.Amount.Uint64() < classData.Config.MintPrice {
+		if spentableTokens.Amount.Uint64() < claimPeriod.MintPrice {
 			return nil, types.ErrInsufficientFunds.Wrapf("insufficient funds to mint tokenId %s", tokenId)
 		}
 
-		err = k.bankKeeper.SendCoins(ctx, userAddress, ownerAddress, sdk.NewCoins(sdk.NewCoin(params.GetMintPriceDenom(), sdk.NewInt(int64(classData.Config.MintPrice)))))
+		err = k.bankKeeper.SendCoins(ctx, userAddress, ownerAddress, sdk.NewCoins(sdk.NewCoin(params.GetMintPriceDenom(), sdk.NewInt(int64(claimPeriod.MintPrice)))))
 		if err != nil {
 			return nil, types.ErrFailedToMintNFT.Wrapf("%s", err.Error())
 		}
@@ -53,7 +72,7 @@ func (k msgServer) mintPayToMintNFT(ctx sdk.Context, classId string, classData *
 	return &nft, nil
 }
 
-func (k msgServer) mintOwnerNFT(ctx sdk.Context, classId string, classData *types.ClassData, userAddress sdk.AccAddress, msg *types.MsgMintNFT) (*nft.NFT, error) {
+func (k msgServer) mintRegularNFT(ctx sdk.Context, classId string, classData *types.ClassData, userAddress sdk.AccAddress, msg *types.MsgMintNFT) (*nft.NFT, error) {
 	// Validate token id
 	if err := nft.ValidateNFTID(msg.Id); err != nil {
 		return nil, types.ErrInvalidTokenId.Wrapf("%s", err)
@@ -131,13 +150,13 @@ func (k msgServer) MintNFT(goCtx context.Context, msg *types.MsgMintNFT) (*types
 
 	// Mint NFT
 	var nft *nft.NFT
-	if classData.Config.EnablePayToMint && !parent.Owner.Equals(userAddress) {
-		nft, err = k.mintPayToMintNFT(ctx, class.Id, &classData, parent.Owner, userAddress, totalSupply, msg)
+	if classData.Config.EnableBlindBox {
+		nft, err = k.mintBlindBoxNFT(ctx, class.Id, &classData, parent.Owner, userAddress, totalSupply, msg)
 		if err != nil {
 			return nil, err
 		}
 	} else if parent.Owner.Equals(userAddress) {
-		nft, err = k.mintOwnerNFT(ctx, class.Id, &classData, userAddress, msg)
+		nft, err = k.mintRegularNFT(ctx, class.Id, &classData, userAddress, msg)
 		if err != nil {
 			return nil, err
 		}
