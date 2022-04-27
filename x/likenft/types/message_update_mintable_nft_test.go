@@ -8,21 +8,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMsgCreateClaimableNFT_ValidateBasic(t *testing.T) {
+func TestMsgUpdateMintableNFT_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name string
-		msg  MsgCreateClaimableNFT
+		msg  MsgUpdateMintableNFT
 		err  error
 	}{
 		{
 			name: "invalid address",
-			msg: MsgCreateClaimableNFT{
+			msg: MsgUpdateMintableNFT{
 				Creator: "invalid_address",
 			},
 			err: sdkerrors.ErrInvalidAddress,
 		}, {
 			name: "valid address",
-			msg: MsgCreateClaimableNFT{
+			msg: MsgUpdateMintableNFT{
 				Creator: sample.AccAddress(),
 			},
 		},
