@@ -17,7 +17,7 @@ lint:
     - COMMENT_ENUM
     - COMMENT_ENUM_VALUE
   ignore:
-    - iscn
+    - likechain/iscn
 breaking:
   use:
     - FILE
