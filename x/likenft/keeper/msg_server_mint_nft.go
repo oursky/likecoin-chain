@@ -3,7 +3,6 @@ package keeper
 import (
 	"context"
 	"fmt"
-	"time"
 
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,16 +13,20 @@ import (
 
 func (k msgServer) mintBlindBoxNFT(ctx sdk.Context, classId string, classData *types.ClassData, ownerAddress sdk.AccAddress, userAddress sdk.AccAddress, totalSupply uint64, msg *types.MsgMintNFT) (*nft.NFT, error) {
 	params := k.GetParams(ctx)
-	tokenId := fmt.Sprintf("%s-%d", classId, totalSupply+1)
+	tokenId := fmt.Sprintf("nft%d", totalSupply+1)
 
 	// Check if the class has already been revealed or not
-	revealTime := classData.Config.RevealTime
-	if revealTime != nil && revealTime.Before(time.Now()) {
+	if !classData.ToBeRevealed {
 		return nil, types.ErrFailedToMintNFT.Wrapf(fmt.Sprintf("The class %s has already been revealed", classId))
 	}
 
+	// Check mintable supply
+	if totalSupply >= classData.MintableCount {
+		return nil, types.ErrNftNoSupply.Wrapf("All mintable NFTs have been minted")
+	}
+
 	// Resolve the most applicable mint period
-	mintPeriod, err := k.resolveValidMintPeriod(ctx, classId, *classData, ownerAddress, userAddress)
+	mintPeriod, err := k.resolveValidMintPeriod(ctx, classId, *classData.Config.BlindBoxConfig, ownerAddress, userAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -33,10 +36,8 @@ func (k msgServer) mintBlindBoxNFT(ctx sdk.Context, classId string, classData *t
 	}
 
 	nftData := types.NFTData{
-		Metadata:    types.JsonInput{}, // TODO: add metadata template
-		ClassParent: classData.Parent,
-		IsRevealed:  false,
-		RevealTime:  revealTime,
+		ClassParent:  classData.Parent,
+		ToBeRevealed: true,
 	}
 
 	nftDataInAny, err := cdctypes.NewAnyWithValue(&nftData)
@@ -46,8 +47,6 @@ func (k msgServer) mintBlindBoxNFT(ctx sdk.Context, classId string, classData *t
 	nft := nft.NFT{
 		ClassId: classId,
 		Id:      tokenId,
-		Uri:     msg.Input.Uri,
-		UriHash: msg.Input.UriHash,
 		Data:    nftDataInAny,
 	}
 
@@ -79,8 +78,9 @@ func (k msgServer) mintRegularNFT(ctx sdk.Context, classId string, classData *ty
 	}
 
 	nftData := types.NFTData{
-		Metadata:    msg.Input.Metadata,
-		ClassParent: classData.Parent,
+		Metadata:     msg.Input.Metadata,
+		ClassParent:  classData.Parent,
+		ToBeRevealed: false,
 	}
 	nftDataInAny, err := cdctypes.NewAnyWithValue(&nftData)
 	if err != nil {
@@ -150,7 +150,7 @@ func (k msgServer) MintNFT(goCtx context.Context, msg *types.MsgMintNFT) (*types
 
 	// Mint NFT
 	var nft *nft.NFT
-	if classData.Config.EnableBlindBox {
+	if classData.Config.IsBlindBox() {
 		nft, err = k.mintBlindBoxNFT(ctx, class.Id, &classData, parent.Owner, userAddress, totalSupply, msg)
 		if err != nil {
 			return nil, err

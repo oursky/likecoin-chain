@@ -65,7 +65,7 @@ service Query {
 	rpc MintableNFTs(QueryMintableNFTsRequest) returns (QueryMintableNFTsResponse) {
 		option (google.api.http).get = "/likecoin/likechain/likenft/mintable_nft/{classId}";
 	}
-
+    
 // this line is used by starport scaffolding # 2
 }
 

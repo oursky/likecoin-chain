@@ -25,10 +25,12 @@ func (k msgServer) UpdateClass(goCtx context.Context, msg *types.MsgUpdateClass)
 		return nil, types.ErrCannotUpdateClassWithMintedTokens.Wrap("Cannot update class with minted tokens")
 	}
 
-	// Verify class config
-	if err := k.validateClassConfig(&msg.Input.Config); err != nil {
+	// Verify and Cleanup class config
+	cleanClassConfig, err := k.sanitizeClassConfig(msg.Input.Config)
+	if cleanClassConfig == nil || err != nil {
 		return nil, err
 	}
+	msg.Input.Config = *cleanClassConfig
 
 	// Check class parent relation is valid and current user is owner
 
@@ -54,15 +56,14 @@ func (k msgServer) UpdateClass(goCtx context.Context, msg *types.MsgUpdateClass)
 		return nil, sdkerrors.ErrUnauthorized.Wrapf("%s is not authorized", userAddress.String())
 	}
 
-	// Sort the mint period by start time
-	msg.Input.Config.MintPeriods = SortMintPeriod(msg.Input.Config.MintPeriods, true)
+	originalConfig := classData.Config
+	updatedConfig := msg.Input.Config
 
 	// Update class
-	classData = types.ClassData{
-		Metadata: msg.Input.Metadata,
-		Parent:   parent.ClassParent,
-		Config:   msg.Input.Config,
-	}
+	classData.Metadata = msg.Input.Metadata
+	classData.Parent = parent.ClassParent
+	classData.Config = msg.Input.Config
+	classData.ToBeRevealed = msg.Input.Config.IsBlindBox()
 	classDataInAny, err := cdctypes.NewAnyWithValue(&classData)
 	if err != nil {
 		return nil, types.ErrFailedToMarshalData.Wrapf("%s", err.Error())
@@ -78,6 +79,19 @@ func (k msgServer) UpdateClass(goCtx context.Context, msg *types.MsgUpdateClass)
 	}
 	if err := k.nftKeeper.UpdateClass(ctx, class); err != nil {
 		return nil, types.ErrFailedToUpdateClass.Wrapf("%s", err.Error())
+	}
+
+	// Dequeue original reveal schedule
+	if originalConfig.IsBlindBox() {
+		k.RemoveClassRevealQueueEntry(ctx, originalConfig.BlindBoxConfig.RevealTime, class.Id)
+	}
+
+	// Enqueue new reveal schedule
+	if updatedConfig.IsBlindBox() {
+		k.SetClassRevealQueueEntry(ctx, types.ClassRevealQueueEntry{
+			ClassId:    class.Id,
+			RevealTime: updatedConfig.BlindBoxConfig.RevealTime,
+		})
 	}
 
 	// Emit event

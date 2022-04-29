@@ -332,7 +332,7 @@ func TestMintNFTOwnerInvalidTokenID(t *testing.T) {
 		Config: types.ClassConfig{
 			Burnable:       false,
 			MaxSupply:      uint64(5),
-			EnableBlindBox: false,
+			BlindBoxConfig: nil,
 		},
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
@@ -860,7 +860,7 @@ func TestMintBlindBoxNFTNormal(t *testing.T) {
 	}
 }`)
 	mintPrice := uint64(5000000000)
-	revealTime := testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
+	revealTime := *testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
 
 	// Mock keeper calls
 	classIscnVersionAtMint := uint64(1)
@@ -872,18 +872,21 @@ func TestMintBlindBoxNFTNormal(t *testing.T) {
 			IscnVersionAtMint: classIscnVersionAtMint,
 		},
 		Config: types.ClassConfig{
-			Burnable:       false,
-			MaxSupply:      uint64(5000000000),
-			EnableBlindBox: true,
-			MintPeriods: []types.MintPeriod{
-				{
-					StartTime:        testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
-					AllowedAddresses: []string{},
-					MintPrice:        mintPrice,
+			Burnable:  false,
+			MaxSupply: uint64(5000000000),
+			BlindBoxConfig: &types.BlindBoxConfig{
+				MintPeriods: []types.MintPeriod{
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        mintPrice,
+					},
 				},
+				RevealTime: revealTime,
 			},
-			RevealTime: revealTime,
 		},
+		MintableCount: uint64(5000000000),
+		ToBeRevealed:  true,
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.
@@ -961,13 +964,14 @@ func TestMintBlindBoxNFTNormal(t *testing.T) {
 	// Check output
 	require.NoError(t, err)
 	require.Equal(t, classId, res.Nft.ClassId)
-	require.Equal(t, uri, res.Nft.Uri)
-	require.Equal(t, uriHash, res.Nft.UriHash)
+	// content should be empty, ignoring user input
+	require.Empty(t, res.Nft.Uri)
+	require.Empty(t, res.Nft.UriHash)
 
 	var nftData types.NFTData
 	err = nftData.Unmarshal(res.Nft.Data.Value)
 	require.NoErrorf(t, err, "Error unmarshal class data")
-	require.Equal(t, types.JsonInput(nil), nftData.Metadata) // TODO: update metadata to support templates
+	require.Equal(t, types.JsonInput(nil), nftData.Metadata)
 	require.Equal(t, iscnId.Prefix.String(), nftData.ClassParent.IscnIdPrefix)
 	require.Equal(t, classIscnVersionAtMint, nftData.ClassParent.IscnVersionAtMint)
 
@@ -1013,7 +1017,7 @@ func TestMintBlindBoxNFTOwnerNoPay(t *testing.T) {
 	}
 }`)
 	mintPrice := uint64(5000000000)
-	revealTime := testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
+	revealTime := *testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
 
 	// Mock keeper calls
 	classIscnVersionAtMint := uint64(1)
@@ -1025,18 +1029,21 @@ func TestMintBlindBoxNFTOwnerNoPay(t *testing.T) {
 			IscnVersionAtMint: classIscnVersionAtMint,
 		},
 		Config: types.ClassConfig{
-			Burnable:       false,
-			MaxSupply:      uint64(5000000000),
-			EnableBlindBox: true,
-			MintPeriods: []types.MintPeriod{
-				{
-					StartTime:        testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
-					AllowedAddresses: []string{},
-					MintPrice:        mintPrice,
+			Burnable:  false,
+			MaxSupply: uint64(5000000000),
+			BlindBoxConfig: &types.BlindBoxConfig{
+				MintPeriods: []types.MintPeriod{
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        mintPrice,
+					},
 				},
+				RevealTime: revealTime,
 			},
-			RevealTime: revealTime,
 		},
+		MintableCount: uint64(5000000000),
+		ToBeRevealed:  true,
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.
@@ -1093,13 +1100,14 @@ func TestMintBlindBoxNFTOwnerNoPay(t *testing.T) {
 	// Check output
 	require.NoError(t, err)
 	require.Equal(t, classId, res.Nft.ClassId)
-	require.Equal(t, uri, res.Nft.Uri)
-	require.Equal(t, uriHash, res.Nft.UriHash)
+	// content should be empty, ignoring user input
+	require.Empty(t, res.Nft.Uri)
+	require.Empty(t, res.Nft.UriHash)
 
 	var nftData types.NFTData
 	err = nftData.Unmarshal(res.Nft.Data.Value)
 	require.NoErrorf(t, err, "Error unmarshal class data")
-	require.Equal(t, types.JsonInput(nil), nftData.Metadata) // TODO: update metadata to support templates
+	require.Equal(t, types.JsonInput(nil), nftData.Metadata)
 	require.Equal(t, iscnId.Prefix.String(), nftData.ClassParent.IscnIdPrefix)
 	require.Equal(t, classIscnVersionAtMint, nftData.ClassParent.IscnVersionAtMint)
 
@@ -1145,7 +1153,7 @@ func TestMintBlindBoxNFTOwnerIgnoreAllowList(t *testing.T) {
 	}
 }`)
 	mintPrice := uint64(5000000000)
-	revealTime := testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
+	revealTime := *testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
 
 	// Mock keeper calls
 	classIscnVersionAtMint := uint64(1)
@@ -1157,18 +1165,21 @@ func TestMintBlindBoxNFTOwnerIgnoreAllowList(t *testing.T) {
 			IscnVersionAtMint: classIscnVersionAtMint,
 		},
 		Config: types.ClassConfig{
-			Burnable:       false,
-			MaxSupply:      uint64(5000000000),
-			EnableBlindBox: true,
-			MintPeriods: []types.MintPeriod{
-				{
-					StartTime:        testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
-					AllowedAddresses: []string{},
-					MintPrice:        mintPrice,
+			Burnable:  false,
+			MaxSupply: uint64(5000000000),
+			BlindBoxConfig: &types.BlindBoxConfig{
+				MintPeriods: []types.MintPeriod{
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        mintPrice,
+					},
 				},
+				RevealTime: revealTime,
 			},
-			RevealTime: revealTime,
 		},
+		MintableCount: uint64(5000000000),
+		ToBeRevealed:  true,
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.
@@ -1225,13 +1236,14 @@ func TestMintBlindBoxNFTOwnerIgnoreAllowList(t *testing.T) {
 	// Check output
 	require.NoError(t, err)
 	require.Equal(t, classId, res.Nft.ClassId)
-	require.Equal(t, uri, res.Nft.Uri)
-	require.Equal(t, uriHash, res.Nft.UriHash)
+	// content should be empty, ignoring user input
+	require.Empty(t, res.Nft.Uri)
+	require.Empty(t, res.Nft.UriHash)
 
 	var nftData types.NFTData
 	err = nftData.Unmarshal(res.Nft.Data.Value)
 	require.NoErrorf(t, err, "Error unmarshal class data")
-	require.Equal(t, types.JsonInput(nil), nftData.Metadata) // TODO: update metadata to support templates
+	require.Equal(t, types.JsonInput(nil), nftData.Metadata)
 	require.Equal(t, iscnId.Prefix.String(), nftData.ClassParent.IscnIdPrefix)
 	require.Equal(t, classIscnVersionAtMint, nftData.ClassParent.IscnVersionAtMint)
 
@@ -1282,7 +1294,7 @@ func TestMintBlindBoxNFTChangingMintPeriodPrice(t *testing.T) {
 	secondMintPeriodPrice := uint64(20000000000)
 	thirdMintPeriodPrice := uint64(30000000000)
 
-	revealTime := testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
+	revealTime := *testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
 
 	// Mock keeper calls
 	classIscnVersionAtMint := uint64(1)
@@ -1294,29 +1306,32 @@ func TestMintBlindBoxNFTChangingMintPeriodPrice(t *testing.T) {
 			IscnVersionAtMint: classIscnVersionAtMint,
 		},
 		Config: types.ClassConfig{
-			Burnable:       false,
-			MaxSupply:      uint64(5000000000),
-			EnableBlindBox: true,
-			// Assume sorted descending when creating/updating class
-			MintPeriods: []types.MintPeriod{
-				{
-					StartTime:        testutil.MustParseTime(time.RFC3339, "2048-04-01T00:00:00Z"),
-					AllowedAddresses: []string{},
-					MintPrice:        thirdMintPeriodPrice,
+			Burnable:  false,
+			MaxSupply: uint64(5000000000),
+			BlindBoxConfig: &types.BlindBoxConfig{
+				// Assume sorted descending when creating/updating class
+				MintPeriods: []types.MintPeriod{
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2048-04-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        thirdMintPeriodPrice,
+					},
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2022-04-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        secondMintPeriodPrice,
+					},
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2022-01-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        firstMintPeriodPrice,
+					},
 				},
-				{
-					StartTime:        testutil.MustParseTime(time.RFC3339, "2022-04-01T00:00:00Z"),
-					AllowedAddresses: []string{},
-					MintPrice:        secondMintPeriodPrice,
-				},
-				{
-					StartTime:        testutil.MustParseTime(time.RFC3339, "2022-01-01T00:00:00Z"),
-					AllowedAddresses: []string{},
-					MintPrice:        firstMintPeriodPrice,
-				},
+				RevealTime: revealTime,
 			},
-			RevealTime: revealTime,
 		},
+		MintableCount: uint64(5000000000),
+		ToBeRevealed:  true,
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.
@@ -1394,13 +1409,14 @@ func TestMintBlindBoxNFTChangingMintPeriodPrice(t *testing.T) {
 	// Check output
 	require.NoError(t, err)
 	require.Equal(t, classId, res.Nft.ClassId)
-	require.Equal(t, uri, res.Nft.Uri)
-	require.Equal(t, uriHash, res.Nft.UriHash)
+	// content should be empty, ignoring user input
+	require.Empty(t, res.Nft.Uri)
+	require.Empty(t, res.Nft.UriHash)
 
 	var nftData types.NFTData
 	err = nftData.Unmarshal(res.Nft.Data.Value)
 	require.NoErrorf(t, err, "Error unmarshal class data")
-	require.Equal(t, types.JsonInput(nil), nftData.Metadata) // TODO: update metadata to support templates
+	require.Equal(t, types.JsonInput(nil), nftData.Metadata)
 	require.Equal(t, iscnId.Prefix.String(), nftData.ClassParent.IscnIdPrefix)
 	require.Equal(t, classIscnVersionAtMint, nftData.ClassParent.IscnVersionAtMint)
 
@@ -1447,7 +1463,7 @@ func TestMintBlindBoxNFTFree(t *testing.T) {
 	}
 }`)
 	mintPrice := uint64(0)
-	revealTime := testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
+	revealTime := *testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
 
 	// Mock keeper calls
 	classIscnVersionAtMint := uint64(1)
@@ -1459,18 +1475,21 @@ func TestMintBlindBoxNFTFree(t *testing.T) {
 			IscnVersionAtMint: classIscnVersionAtMint,
 		},
 		Config: types.ClassConfig{
-			Burnable:       false,
-			MaxSupply:      uint64(5000000000),
-			EnableBlindBox: true,
-			MintPeriods: []types.MintPeriod{
-				{
-					StartTime:        testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
-					AllowedAddresses: []string{},
-					MintPrice:        mintPrice,
+			Burnable:  false,
+			MaxSupply: uint64(5000000000),
+			BlindBoxConfig: &types.BlindBoxConfig{
+				MintPeriods: []types.MintPeriod{
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        mintPrice,
+					},
 				},
+				RevealTime: revealTime,
 			},
-			RevealTime: revealTime,
 		},
+		MintableCount: uint64(5000000000),
+		ToBeRevealed:  true,
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.
@@ -1527,13 +1546,14 @@ func TestMintBlindBoxNFTFree(t *testing.T) {
 	// Check output
 	require.NoError(t, err)
 	require.Equal(t, classId, res.Nft.ClassId)
-	require.Equal(t, uri, res.Nft.Uri)
-	require.Equal(t, uriHash, res.Nft.UriHash)
+	// content should be empty, ignoring user input
+	require.Empty(t, res.Nft.Uri)
+	require.Empty(t, res.Nft.UriHash)
 
 	var nftData types.NFTData
 	err = nftData.Unmarshal(res.Nft.Data.Value)
 	require.NoErrorf(t, err, "Error unmarshal class data")
-	require.Equal(t, types.JsonInput(nil), nftData.Metadata) // TODO: update metadata to support templates
+	require.Equal(t, types.JsonInput(nil), nftData.Metadata)
 	require.Equal(t, iscnId.Prefix.String(), nftData.ClassParent.IscnIdPrefix)
 	require.Equal(t, classIscnVersionAtMint, nftData.ClassParent.IscnVersionAtMint)
 
@@ -1592,18 +1612,21 @@ func TestMintBlindBoxNFTInsufficientFunds(t *testing.T) {
 			IscnVersionAtMint: classIscnVersionAtMint,
 		},
 		Config: types.ClassConfig{
-			Burnable:       false,
-			MaxSupply:      uint64(5000000000),
-			EnableBlindBox: true,
-			MintPeriods: []types.MintPeriod{
-				{
-					StartTime:        testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
-					AllowedAddresses: []string{},
-					MintPrice:        mintPrice,
+			Burnable:  false,
+			MaxSupply: uint64(5000000000),
+			BlindBoxConfig: &types.BlindBoxConfig{
+				MintPeriods: []types.MintPeriod{
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        mintPrice,
+					},
 				},
+				RevealTime: *revealTime,
 			},
-			RevealTime: revealTime,
 		},
+		MintableCount: uint64(5000000000),
+		ToBeRevealed:  true,
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.
@@ -1724,7 +1747,7 @@ func TestMintNFTNotOwnerNoBlindBox(t *testing.T) {
 		Config: types.ClassConfig{
 			Burnable:       false,
 			MaxSupply:      uint64(5000000000),
-			EnableBlindBox: false,
+			BlindBoxConfig: nil,
 		},
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
@@ -1929,7 +1952,7 @@ func TestMintBlindBoxNFTAfterRevealTime(t *testing.T) {
 		}
 	}
 }`)
-	revealTime := testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z")
+	revealTime := *testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z")
 
 	// Mock keeper calls
 	classIscnVersionAtMint := uint64(1)
@@ -1941,18 +1964,21 @@ func TestMintBlindBoxNFTAfterRevealTime(t *testing.T) {
 			IscnVersionAtMint: classIscnVersionAtMint,
 		},
 		Config: types.ClassConfig{
-			Burnable:       false,
-			MaxSupply:      uint64(500),
-			EnableBlindBox: true,
-			MintPeriods: []types.MintPeriod{
-				{
-					StartTime:        testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
-					AllowedAddresses: []string{},
-					MintPrice:        uint64(0),
+			Burnable:  false,
+			MaxSupply: uint64(500),
+			BlindBoxConfig: &types.BlindBoxConfig{
+				MintPeriods: []types.MintPeriod{
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        uint64(0),
+					},
 				},
+				RevealTime: revealTime,
 			},
-			RevealTime: revealTime,
 		},
+		MintableCount: uint64(500),
+		ToBeRevealed:  false,
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.
@@ -2061,6 +2087,8 @@ func TestMintNFTUnlimitedSupply(t *testing.T) {
 			Burnable:  false,
 			MaxSupply: uint64(0),
 		},
+		MintableCount: uint64(500),
+		ToBeRevealed:  true,
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.
@@ -2126,6 +2154,130 @@ func TestMintNFTUnlimitedSupply(t *testing.T) {
 	require.Equal(t, metadata, nftData.Metadata)
 	require.Equal(t, iscnId.Prefix.String(), nftData.ClassParent.IscnIdPrefix)
 	require.Equal(t, classIscnVersionAtMint, nftData.ClassParent.IscnVersionAtMint)
+
+	// Check mock was called as expected
+	ctrl.Finish()
+}
+
+func TestMintBlindBoxNFTNoMintableSupply(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
+	bankKeeper := testutil.NewMockBankKeeper(ctrl)
+	iscnKeeper := testutil.NewMockIscnKeeper(ctrl)
+	nftKeeper := testutil.NewMockNftKeeper(ctrl)
+	msgServer, goCtx, keeper := setupMsgServer(t, keeper.LikenftDependedKeepers{
+		AccountKeeper: accountKeeper,
+		BankKeeper:    bankKeeper,
+		IscnKeeper:    iscnKeeper,
+		NftKeeper:     nftKeeper,
+	})
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	ctx = ctx.WithBlockHeader(tmproto.Header{Time: *testutil.MustParseTime(time.RFC3339, "2022-04-20T00:00:00Z")})
+	updatedGoCtx := sdk.WrapSDKContext(ctx)
+
+	// Test Input 1
+	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
+	ownerAddress, _ := sdk.Bech32ifyAddressBytes("cosmos", ownerAddressBytes)
+	iscnId := iscntypes.NewIscnId("likecoin-chain", "abcdef", 1)
+	classId := "likenft1aabbccddeeff"
+	tokenId := "token1"
+	uri := "ipfs://a1b2c3"
+	uriHash := "a1b2c3"
+	metadata := types.JsonInput(
+		`{
+	"abc": "def",
+	"qwerty": 1234,
+	"bool": false,
+	"null": null,
+	"nested": {
+		"object": {
+			"abc": "def"
+		}
+	}
+}`)
+
+	// Mock keeper calls
+	mintPrice := uint64(5000000000)
+	revealTime := *testutil.MustParseTime(time.RFC3339, "2322-04-20T00:00:00Z")
+
+	// Mock keeper calls
+	classIscnVersionAtMint := uint64(1)
+	classData := types.ClassData{
+		Metadata: types.JsonInput(`{"aaaa": "bbbb"}`),
+		Parent: types.ClassParent{
+			Type:              types.ClassParentType_ISCN,
+			IscnIdPrefix:      iscnId.Prefix.String(),
+			IscnVersionAtMint: classIscnVersionAtMint,
+		},
+		Config: types.ClassConfig{
+			Burnable:  false,
+			MaxSupply: uint64(1000),
+			BlindBoxConfig: &types.BlindBoxConfig{
+				MintPeriods: []types.MintPeriod{
+					{
+						StartTime:        *testutil.MustParseTime(time.RFC3339, "2020-01-01T00:00:00Z"),
+						AllowedAddresses: []string{},
+						MintPrice:        mintPrice,
+					},
+				},
+				RevealTime: revealTime,
+			},
+		},
+		MintableCount: uint64(500),
+		ToBeRevealed:  true,
+	}
+	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
+	nftKeeper.
+		EXPECT().
+		GetClass(gomock.Any(), gomock.Eq(classId)).
+		Return(nft.Class{
+			Id:          classId,
+			Name:        "Class Name",
+			Symbol:      "ABC",
+			Description: "Testing Class 123",
+			Uri:         "ipfs://abcdef",
+			UriHash:     "abcdef",
+			Data:        classDataInAny,
+		}, true)
+
+	keeper.SetClassesByISCN(ctx, types.ClassesByISCN{
+		IscnIdPrefix: iscnId.Prefix.String(),
+		ClassIds:     []string{classId},
+	})
+
+	iscnLatestVersion := uint64(2)
+	iscnKeeper.
+		EXPECT().
+		GetContentIdRecord(gomock.Any(), gomock.Eq(iscnId.Prefix)).
+		Return(&iscntypes.ContentIdRecord{
+			OwnerAddressBytes: ownerAddressBytes,
+			LatestVersion:     iscnLatestVersion,
+		})
+
+	// Test for subsequent nft mint at this case
+	// No class update
+	nftKeeper.
+		EXPECT().
+		GetTotalSupply(gomock.Any(), gomock.Eq(classId)).
+		Return(uint64(500))
+
+	// Run
+	res, err := msgServer.MintNFT(updatedGoCtx, &types.MsgMintNFT{
+		Creator: ownerAddress,
+		ClassId: classId,
+		Id:      tokenId,
+		Input: types.NFTInput{
+			Uri:      uri,
+			UriHash:  uriHash,
+			Metadata: metadata,
+		},
+	})
+
+	// Check output
+	require.Error(t, err)
+	require.Contains(t, err.Error(), types.ErrNftNoSupply.Error())
+	require.Nil(t, res)
 
 	// Check mock was called as expected
 	ctrl.Finish()

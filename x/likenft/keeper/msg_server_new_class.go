@@ -27,10 +27,12 @@ func (k msgServer) NewClass(goCtx context.Context, msg *types.MsgNewClass) (*typ
 		return nil, sdkerrors.ErrUnauthorized.Wrapf("%s is not authorized", userAddress.String())
 	}
 
-	// Verify class config
-	if err := k.validateClassConfig(&msg.Input.Config); err != nil {
+	// Sanitize class config
+	cleanClassConfig, err := k.sanitizeClassConfig(msg.Input.Config)
+	if cleanClassConfig == nil || err != nil {
 		return nil, err
 	}
+	msg.Input.Config = *cleanClassConfig
 
 	// Make class id
 	var existingClassIds []string
@@ -59,14 +61,12 @@ func (k msgServer) NewClass(goCtx context.Context, msg *types.MsgNewClass) (*typ
 		panic(fmt.Sprintf("Unsupported parent type %s after initial check", parent.Type.String()))
 	}
 
-	// Sort the mint period by start time
-	msg.Input.Config.MintPeriods = SortMintPeriod(msg.Input.Config.MintPeriods, true)
-
 	// Create Class
 	classData := types.ClassData{
-		Metadata: msg.Input.Metadata,
-		Parent:   parent.ClassParent,
-		Config:   msg.Input.Config,
+		Metadata:     msg.Input.Metadata,
+		Parent:       parent.ClassParent,
+		Config:       msg.Input.Config,
+		ToBeRevealed: msg.Input.Config.IsBlindBox(),
 	}
 	classDataInAny, err := cdctypes.NewAnyWithValue(&classData)
 	if err != nil {
@@ -100,6 +100,14 @@ func (k msgServer) NewClass(goCtx context.Context, msg *types.MsgNewClass) (*typ
 		})
 	} else {
 		panic(fmt.Sprintf("Unsupported parent type %s after initial check", parent.Type.String()))
+	}
+
+	// Enqueue class for reveal
+	if classData.Config.IsBlindBox() {
+		k.SetClassRevealQueueEntry(ctx, types.ClassRevealQueueEntry{
+			ClassId:    newClassId,
+			RevealTime: classData.Config.BlindBoxConfig.RevealTime,
+		})
 	}
 
 	// Emit event

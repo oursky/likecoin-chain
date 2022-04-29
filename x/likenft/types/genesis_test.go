@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/likecoin/likechain/testutil"
 	"github.com/likecoin/likechain/x/likenft/types"
@@ -10,6 +11,7 @@ import (
 
 func TestGenesisState_Validate(t *testing.T) {
 	accounts := testutil.CreateIncrementalAccounts(2)
+	revealTime := time.Now()
 	for _, tc := range []struct {
 		desc     string
 		genState *types.GenesisState
@@ -49,6 +51,16 @@ func TestGenesisState_Validate(t *testing.T) {
 					{
 						ClassId: "1",
 						Id:      "1",
+					},
+				},
+				ClassRevealQueue: []types.ClassRevealQueueEntry{
+					{
+						RevealTime: revealTime,
+						ClassId:    "0",
+					},
+					{
+						RevealTime: revealTime,
+						ClassId:    "1",
 					},
 				},
 				// this line is used by starport scaffolding # types/genesis/validField
@@ -130,6 +142,21 @@ func TestGenesisState_Validate(t *testing.T) {
 					{
 						ClassId: "0",
 						Id:      "0",
+					},
+				},
+			},
+		},
+		{
+			desc: "duplicated classRevealQueueEntry",
+			genState: &types.GenesisState{
+				ClassRevealQueue: []types.ClassRevealQueueEntry{
+					{
+						RevealTime: revealTime,
+						ClassId:    "0",
+					},
+					{
+						RevealTime: revealTime,
+						ClassId:    "0",
 					},
 				},
 			},

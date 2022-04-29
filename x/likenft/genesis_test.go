@@ -2,6 +2,7 @@ package likenft_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/likecoin/likechain/testutil"
 	"github.com/likecoin/likechain/testutil/nullify"
@@ -14,7 +15,7 @@ import (
 
 func TestGenesis(t *testing.T) {
 	accounts := testutil.CreateIncrementalAccounts(2)
-
+	revealTime := time.Now()
 	genesisState := types.GenesisState{
 		Params: types.DefaultParams(),
 
@@ -44,6 +45,16 @@ func TestGenesis(t *testing.T) {
 				Id:      "1",
 			},
 		},
+		ClassRevealQueue: []types.ClassRevealQueueEntry{
+			{
+				RevealTime: revealTime,
+				ClassId:    "0",
+			},
+			{
+				RevealTime: revealTime,
+				ClassId:    "1",
+			},
+		},
 		// this line is used by starport scaffolding # genesis/test/state
 	}
 
@@ -60,5 +71,6 @@ func TestGenesis(t *testing.T) {
 	require.ElementsMatch(t, genesisState.ClassesByISCNList, got.ClassesByISCNList)
 	require.ElementsMatch(t, genesisState.ClassesByAccountList, got.ClassesByAccountList)
 	require.ElementsMatch(t, genesisState.MintableNFTList, got.MintableNFTList)
+	require.ElementsMatch(t, genesisState.ClassRevealQueue, got.ClassRevealQueue)
 	// this line is used by starport scaffolding # genesis/test/assert
 }
