@@ -13,16 +13,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2.4.0
+      - uses: actions/setup-go@v2
+      - name: gen proto
+        run: make gen-proto
+      - name: update proto dependency
+        run: make proto-update-deps
       - name: lint
-        # TODO: Remove after fixing protobuf
-        if: ${{ false }}
         run: make proto-lint
-
-  breakage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - name: check-breakage
-        # TODO: Remove after fixing protobuf
-        if: ${{ false }}
-        run: make proto-check-breaking
