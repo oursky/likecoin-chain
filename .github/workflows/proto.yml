@@ -18,5 +18,7 @@ jobs:
         run: make gen-proto
       - name: update proto dependency
         run: make proto-update-deps
+      - name: format-check
+        run: make proto-format-check
       - name: lint
         run: make proto-lint
