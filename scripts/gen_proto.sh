@@ -26,7 +26,7 @@ for module in "${MODULES[@]}"; do
       --gocosmos_out=plugins=interfacetype+grpc,Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types:. \
       --grpc-gateway_out=logtostderr=true:. \
       --proto_path proto \
-      ./proto/${module}/* \
+      ./proto/likechain/${module}/* \
       --swagger_out ${SWAGGER_DIR} \
       --swagger_opt logtostderr=true --swagger_opt fqn_for_swagger_name=true --swagger_opt simple_operation_ids=true
 

@@ -139,8 +139,10 @@ gen-proto: x/
 	./scripts/gen_proto.sh
 
 proto-format:
-	@echo "Formatting Protobuf files"
-	find ./ -not -path "./third_party/*" -name *.proto -exec clang-format -i {} \;
+	@$(DOCKER_BUF) format -w
+
+proto-format-check:
+	@$(DOCKER_BUF) format --diff --exit-code
 
 proto-lint:
 	@$(DOCKER_BUF) lint --error-format=json
