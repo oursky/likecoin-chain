@@ -67,6 +67,26 @@ func (k Keeper) RemoveMintableNFT(
 	store.Delete(key)
 }
 
+// RemoveMintableNFT removes a mintableNFT from the store
+func (k Keeper) RemoveMintableNFTs(
+	ctx sdk.Context,
+	classId string,
+) {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.MintableNFTKeyPrefix))
+	iterator := sdk.KVStorePrefixIterator(store, types.MintableNFTsKey(classId))
+
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		store.Delete(iterator.Key())
+	}
+
+	// reset count to 0
+	if err := k.setMintableCount(ctx, classId, 0); err != nil {
+		panic(fmt.Errorf("Failed to reset mintable count: %s", err.Error()))
+	}
+}
+
 // GetMintableNFTs returns all mintableNFT of a class
 func (k Keeper) GetMintableNFTs(ctx sdk.Context, classId string) (list []types.MintableNFT) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.MintableNFTKeyPrefix))
@@ -83,8 +103,20 @@ func (k Keeper) GetMintableNFTs(ctx sdk.Context, classId string) (list []types.M
 	return
 }
 
-// GetAllMintableNFT returns all mintableNFT
-func (k Keeper) GetAllMintableNFT(ctx sdk.Context) (list []types.MintableNFT) {
+func (k Keeper) IterateMintableNFTs(ctx sdk.Context, classId string, callback func(types.MintableNFT)) {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.MintableNFTKeyPrefix))
+	iterator := sdk.KVStorePrefixIterator(store, types.MintableNFTsKey(classId))
+
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		var val types.MintableNFT
+		k.cdc.MustUnmarshal(iterator.Value(), &val)
+		callback(val)
+	}
+}
+
+func (k Keeper) IterateAllMintableNFT(ctx sdk.Context, callback func(types.MintableNFT)) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefix(types.MintableNFTKeyPrefix))
 	iterator := sdk.KVStorePrefixIterator(store, []byte{})
 
@@ -93,8 +125,14 @@ func (k Keeper) GetAllMintableNFT(ctx sdk.Context) (list []types.MintableNFT) {
 	for ; iterator.Valid(); iterator.Next() {
 		var val types.MintableNFT
 		k.cdc.MustUnmarshal(iterator.Value(), &val)
-		list = append(list, val)
+		callback(val)
 	}
+}
 
+// GetAllMintableNFT returns all MintableNFT
+func (k Keeper) GetAllMintableNFT(ctx sdk.Context) (list []types.MintableNFT) {
+	k.IterateAllMintableNFT(ctx, func(val types.MintableNFT) {
+		list = append(list, val)
+	})
 	return
 }
