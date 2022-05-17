@@ -1,6 +1,7 @@
 package likenft
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
@@ -9,28 +10,22 @@ import (
 	"github.com/likecoin/likechain/x/likenft/types"
 )
 
-func tryRevealClassCatchPanic(ctx sdk.Context, keeper keeper.Keeper, classId string) error {
-	var err error
+func tryRevealClassCatchPanic(ctx sdk.Context, keeper keeper.Keeper, classId string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			err = fmt.Errorf("%s", r)
 		}
 	}()
 	err = keeper.RevealMintableNFTs(ctx, classId)
-	return err
+	return
 }
 
 // EndBlocker called every block, process class reveal queue.
 func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
 
-	// Reveal class when its reveal time is reached.
-	keeper.IterateClassRevealQueue(ctx, func(entry types.ClassRevealQueueEntry) bool {
-		if entry.RevealTime.After(ctx.BlockHeader().Time) {
-			// Processed all pending entries already, stop
-			return true
-		}
-
+	// Reveal classes with reveal time < current block header time
+	keeper.IterateClassRevealQueueByTime(ctx, ctx.BlockHeader().Time, func(entry types.ClassRevealQueueEntry) (stop bool) {
 		err := tryRevealClassCatchPanic(ctx, keeper, entry.ClassId)
 
 		if err != nil {
