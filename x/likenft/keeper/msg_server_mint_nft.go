@@ -109,18 +109,14 @@ func (k msgServer) MintNFT(goCtx context.Context, msg *types.MsgMintNFT) (*types
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Assert class exists
-	class, found := k.nftKeeper.GetClass(ctx, msg.ClassId)
-	if !found {
-		return nil, types.ErrNftClassNotFound.Wrapf("Class id %s not found", msg.ClassId)
+	class, classData, err := k.GetClass(ctx, msg.ClassId)
+	if err != nil {
+		return nil, err
 	}
 
-	// Assert class has related iscn
-	var classData types.ClassData
-	if err := k.cdc.Unmarshal(class.Data.Value, &classData); err != nil {
-		return nil, types.ErrFailedToUnmarshalData.Wrapf(err.Error())
-	}
-
-	parent, err := k.validateAndGetClassParentAndOwner(ctx, class.Id, &classData)
+	// validate class parent relation & resolve owner
+	// also refresh parent info (e.g. iscn latest version)
+	parent, err := k.ValidateAndRefreshClassParent(ctx, class.Id, classData.Parent)
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/likecoin/likechain/x/likenft/types"
 )
 
@@ -19,22 +18,14 @@ func (k msgServer) BurnNFT(goCtx context.Context, msg *types.MsgBurnNFT) (*types
 
 	// Check user is owner
 	owner := k.nftKeeper.GetOwner(ctx, msg.ClassId, msg.NftId)
-	user, err := sdk.AccAddressFromBech32(msg.Creator)
-	if err != nil {
-		return nil, sdkerrors.ErrInvalidAddress.Wrapf("%s", err.Error())
-	}
-	if !owner.Equals(user) {
-		return nil, sdkerrors.ErrUnauthorized.Wrapf("User %s is not owner of the NFT", msg.Creator)
+	if err := k.assertBech32EqualsAccAddress(msg.Creator, owner); err != nil {
+		return nil, err
 	}
 
 	// Check class is set to burnable
-	class, found := k.nftKeeper.GetClass(ctx, msg.ClassId)
-	if !found {
-		return nil, types.ErrNftClassNotFound.Wrapf("NFT Class %s not found", msg.ClassId)
-	}
-	var classData types.ClassData
-	if err := k.cdc.Unmarshal(class.Data.Value, &classData); err != nil {
-		return nil, types.ErrFailedToUnmarshalData.Wrapf(err.Error())
+	class, classData, err := k.GetClass(ctx, msg.ClassId)
+	if err != nil {
+		return nil, err
 	}
 	if !classData.Config.Burnable {
 		return nil, types.ErrNftNotBurnable.Wrapf("NFT of class %s is not burnable", class.Id)

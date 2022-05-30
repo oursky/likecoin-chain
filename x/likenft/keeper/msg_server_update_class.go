@@ -5,7 +5,6 @@ import (
 
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/likecoin/likechain/backport/cosmos-sdk/v0.46.0-alpha2/x/nft"
 	"github.com/likecoin/likechain/x/likenft/types"
 )
@@ -14,20 +13,15 @@ func (k msgServer) UpdateClass(goCtx context.Context, msg *types.MsgUpdateClass)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Verify class exists
-	class, found := k.nftKeeper.GetClass(ctx, msg.ClassId)
-	if !found {
-		return nil, types.ErrNftClassNotFound.Wrapf("Class id %s not found", msg.ClassId)
+	class, classData, err := k.GetClass(ctx, msg.ClassId)
+	if err != nil {
+		return nil, err
 	}
 
 	// Verify no tokens minted under class
 	totalSupply := k.nftKeeper.GetTotalSupply(ctx, class.Id)
 	if totalSupply > 0 {
 		return nil, types.ErrCannotUpdateClassWithMintedTokens.Wrap("Cannot update class with minted tokens")
-	}
-
-	var classData types.ClassData
-	if err := k.cdc.Unmarshal(class.Data.Value, &classData); err != nil {
-		return nil, types.ErrFailedToUnmarshalData.Wrapf(err.Error())
 	}
 
 	// Verify and Cleanup class config
@@ -38,21 +32,14 @@ func (k msgServer) UpdateClass(goCtx context.Context, msg *types.MsgUpdateClass)
 	msg.Input.Config = *cleanClassConfig
 
 	// Check class parent relation is valid and current user is owner
-	if err := k.validateClassParentRelation(ctx, class.Id, classData.Parent); err != nil {
+	// also refresh parent info (e.g. iscn latest version)
+	parent, err := k.ValidateAndRefreshClassParent(ctx, class.Id, classData.Parent)
+	if err != nil {
 		return nil, err
 	}
 
-	// refresh parent info (e.g. iscn latest version) & check ownership
-	parent, err := k.resolveClassParentAndOwner(ctx, classData.Parent.ToInput(), classData.Parent.Account)
-	if err != nil {
+	if err := k.assertBech32EqualsAccAddress(msg.Creator, parent.Owner); err != nil {
 		return nil, err
-	}
-	userAddress, err := sdk.AccAddressFromBech32(msg.Creator)
-	if err != nil {
-		return nil, sdkerrors.ErrInvalidAddress.Wrapf("%s", err.Error())
-	}
-	if !parent.Owner.Equals(userAddress) {
-		return nil, sdkerrors.ErrUnauthorized.Wrapf("%s is not authorized", userAddress.String())
 	}
 
 	originalConfig := classData.Config
