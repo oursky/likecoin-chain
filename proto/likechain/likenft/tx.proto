@@ -4,9 +4,11 @@ package likechain.likenft;
 
 import "cosmos/nft/v1beta1/nft.proto";
 import "gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
 import "likechain/likenft/class_input.proto";
 import "likechain/likenft/mintable_nft.proto";
 import "likechain/likenft/nft_input.proto";
+import "likechain/likenft/offer.proto";
 
 // this line is used by starport scaffolding # proto/tx/import
 option go_package = "github.com/likecoin/likechain/x/likenft/types";
@@ -20,6 +22,9 @@ service Msg {
   rpc CreateMintableNFT(MsgCreateMintableNFT) returns (MsgCreateMintableNFTResponse);
   rpc UpdateMintableNFT(MsgUpdateMintableNFT) returns (MsgUpdateMintableNFTResponse);
   rpc DeleteMintableNFT(MsgDeleteMintableNFT) returns (MsgDeleteMintableNFTResponse);
+  rpc CreateOffer(MsgCreateOffer) returns (MsgCreateOfferResponse);
+  rpc UpdateOffer(MsgUpdateOffer) returns (MsgUpdateOfferResponse);
+  rpc DeleteOffer(MsgDeleteOffer) returns (MsgDeleteOfferResponse);
   // this line is used by starport scaffolding # proto/tx/rpc
 }
 
@@ -91,5 +96,40 @@ message MsgDeleteMintableNFT {
 }
 
 message MsgDeleteMintableNFTResponse {}
+
+message MsgCreateOffer {
+  string creator = 1;
+  string class_id = 2;
+  string nft_id = 3;
+  uint64 price = 4;
+  google.protobuf.Timestamp expiration = 5 [
+    (gogoproto.stdtime) = true,
+    (gogoproto.nullable) = false
+  ];
+}
+message MsgCreateOfferResponse {
+  Offer offer = 1 [(gogoproto.nullable) = false];
+}
+
+message MsgUpdateOffer {
+  string creator = 1;
+  string class_id = 2;
+  string nft_id = 3;
+  uint64 price = 4;
+  google.protobuf.Timestamp expiration = 5 [
+    (gogoproto.stdtime) = true,
+    (gogoproto.nullable) = false
+  ];
+}
+message MsgUpdateOfferResponse {
+  Offer offer = 1 [(gogoproto.nullable) = false];
+}
+
+message MsgDeleteOffer {
+  string creator = 1;
+  string class_id = 2;
+  string nft_id = 3;
+}
+message MsgDeleteOfferResponse {}
 
 // this line is used by starport scaffolding # proto/tx/message

@@ -16,6 +16,7 @@ func DefaultGenesis() *GenesisState {
 		ClassesByAccountList: []ClassesByAccount{},
 		MintableNftList:      []MintableNFT{},
 		ClassRevealQueue:     []ClassRevealQueueEntry{},
+		OfferList:            []Offer{},
 		// this line is used by starport scaffolding # genesis/types/default
 		Params: DefaultParams(),
 	}
@@ -70,6 +71,20 @@ func (gs GenesisState) Validate() error {
 			return fmt.Errorf("duplicated index for classRevealQueueEntry")
 		}
 		classRevealQueueIndexMap[index] = struct{}{}
+	}
+	// Check for duplicated index in offer
+	offerIndexMap := make(map[string]struct{})
+
+	for _, elem := range gs.OfferList {
+		acc, err := sdk.AccAddressFromBech32(elem.Buyer)
+		if err != nil {
+			return fmt.Errorf("Invalid account address: %s", err.Error())
+		}
+		index := string(OfferKey(elem.ClassId, elem.NftId, acc))
+		if _, ok := offerIndexMap[index]; ok {
+			return fmt.Errorf("duplicated index for offer")
+		}
+		offerIndexMap[index] = struct{}{}
 	}
 	// this line is used by starport scaffolding # genesis/types/validate
 

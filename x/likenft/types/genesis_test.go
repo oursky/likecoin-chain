@@ -63,6 +63,18 @@ func TestGenesisState_Validate(t *testing.T) {
 						ClassId:    "1",
 					},
 				},
+				OfferList: []types.Offer{
+					{
+						ClassId: "0",
+						NftId:   "0",
+						Buyer:   accounts[0].String(),
+					},
+					{
+						ClassId: "1",
+						NftId:   "1",
+						Buyer:   accounts[1].String(),
+					},
+				},
 				// this line is used by starport scaffolding # types/genesis/validField
 			},
 			valid: true,
@@ -157,6 +169,24 @@ func TestGenesisState_Validate(t *testing.T) {
 					{
 						RevealTime: revealTime,
 						ClassId:    "0",
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			desc: "duplicated offer",
+			genState: &types.GenesisState{
+				OfferList: []types.Offer{
+					{
+						ClassId: "0",
+						NftId:   "0",
+						Buyer:   accounts[0].String(),
+					},
+					{
+						ClassId: "0",
+						NftId:   "0",
+						Buyer:   accounts[0].String(),
 					},
 				},
 			},
