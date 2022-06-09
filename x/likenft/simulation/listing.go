@@ -16,7 +16,7 @@ import (
 // Prevent strconv unused error
 var _ = strconv.IntSize
 
-func SimulateMsgCreateOffer(
+func SimulateMsgCreateListing(
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
 	k keeper.Keeper,
@@ -26,15 +26,15 @@ func SimulateMsgCreateOffer(
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 
 		i := r.Int()
-		msg := &types.MsgCreateOffer{
+		msg := &types.MsgCreateListing{
 			Creator: simAccount.Address.String(),
 			ClassId: strconv.Itoa(i),
 			NftId:   strconv.Itoa(i),
 		}
 
-		_, found := k.GetOffer(ctx, msg.ClassId, msg.NftId, simAccount.Address)
+		_, found := k.GetListing(ctx, msg.ClassId, msg.NftId, simAccount.Address)
 		if found {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "Offer already exist"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "Listing already exist"), nil, nil
 		}
 
 		txCtx := simulation.OperationInput{
@@ -55,7 +55,7 @@ func SimulateMsgCreateOffer(
 	}
 }
 
-func SimulateMsgUpdateOffer(
+func SimulateMsgUpdateListing(
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
 	k keeper.Keeper,
@@ -64,25 +64,25 @@ func SimulateMsgUpdateOffer(
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		var (
 			simAccount = simtypes.Account{}
-			offer      = types.Offer{}
-			msg        = &types.MsgUpdateOffer{}
-			allOffer   = types.MapOffersToPublicRecords(k.GetAllOffer(ctx))
+			listing    = types.Listing{}
+			msg        = &types.MsgUpdateListing{}
+			allListing = types.MapListingsToPublicRecords(k.GetAllListing(ctx))
 			found      = false
 		)
-		for _, obj := range allOffer {
-			simAccount, found = FindAccount(accs, obj.Buyer)
+		for _, obj := range allListing {
+			simAccount, found = FindAccount(accs, obj.Seller)
 			if found {
-				offer = obj
+				listing = obj
 				break
 			}
 		}
 		if !found {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "offer creator not found"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "listing creator not found"), nil, nil
 		}
 		msg.Creator = simAccount.Address.String()
 
-		msg.ClassId = offer.ClassId
-		msg.NftId = offer.NftId
+		msg.ClassId = listing.ClassId
+		msg.NftId = listing.NftId
 
 		txCtx := simulation.OperationInput{
 			R:               r,
@@ -102,7 +102,7 @@ func SimulateMsgUpdateOffer(
 	}
 }
 
-func SimulateMsgDeleteOffer(
+func SimulateMsgDeleteListing(
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
 	k keeper.Keeper,
@@ -111,25 +111,25 @@ func SimulateMsgDeleteOffer(
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		var (
 			simAccount = simtypes.Account{}
-			offer      = types.Offer{}
-			msg        = &types.MsgUpdateOffer{}
-			allOffer   = types.MapOffersToPublicRecords(k.GetAllOffer(ctx))
+			listing    = types.Listing{}
+			msg        = &types.MsgUpdateListing{}
+			allListing = types.MapListingsToPublicRecords(k.GetAllListing(ctx))
 			found      = false
 		)
-		for _, obj := range allOffer {
-			simAccount, found = FindAccount(accs, obj.Buyer)
+		for _, obj := range allListing {
+			simAccount, found = FindAccount(accs, obj.Seller)
 			if found {
-				offer = obj
+				listing = obj
 				break
 			}
 		}
 		if !found {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "offer creator not found"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "listing creator not found"), nil, nil
 		}
 		msg.Creator = simAccount.Address.String()
 
-		msg.ClassId = offer.ClassId
-		msg.NftId = offer.NftId
+		msg.ClassId = listing.ClassId
+		msg.NftId = listing.NftId
 
 		txCtx := simulation.OperationInput{
 			R:               r,

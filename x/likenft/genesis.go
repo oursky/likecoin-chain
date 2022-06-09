@@ -28,7 +28,11 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, genState types.GenesisState) 
 	}
 	// Set all the offer
 	for _, elem := range genState.OfferList {
-		k.SetOffer(ctx, elem)
+		k.SetOffer(ctx, elem.ToStoreRecord())
+	}
+	// Set all the listing
+	for _, elem := range genState.ListingList {
+		k.SetListing(ctx, elem.ToStoreRecord())
 	}
 	// this line is used by starport scaffolding # genesis/module/init
 	k.SetParams(ctx, genState.Params)
@@ -43,7 +47,8 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper) *types.GenesisState {
 	genesis.ClassesByAccountList = k.GetAllClassesByAccount(ctx)
 	genesis.MintableNftList = k.GetAllMintableNFT(ctx)
 	genesis.ClassRevealQueue = k.GetClassRevealQueue(ctx)
-	genesis.OfferList = k.GetAllOffer(ctx)
+	genesis.OfferList = types.MapOffersToPublicRecords(k.GetAllOffer(ctx))
+	genesis.ListingList = types.MapListingsToPublicRecords(k.GetAllListing(ctx))
 	// this line is used by starport scaffolding # genesis/module/export
 
 	return genesis
