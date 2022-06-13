@@ -29,6 +29,8 @@ service Msg {
   rpc CreateListing(MsgCreateListing) returns (MsgCreateListingResponse);
   rpc UpdateListing(MsgUpdateListing) returns (MsgUpdateListingResponse);
   rpc DeleteListing(MsgDeleteListing) returns (MsgDeleteListingResponse);
+  rpc SellNFT(MsgSellNFT) returns (MsgSellNFTResponse);
+  rpc BuyNFT(MsgBuyNFT) returns (MsgBuyNFTResponse);
   // this line is used by starport scaffolding # proto/tx/rpc
 }
 
@@ -170,5 +172,25 @@ message MsgDeleteListing {
   string nft_id = 3;
 }
 message MsgDeleteListingResponse {}
+
+message MsgSellNFT {
+  string creator = 1;
+  string class_id = 2;
+  string nft_id = 3;
+  string buyer = 4;
+  uint64 price = 5;
+}
+
+message MsgSellNFTResponse {}
+
+message MsgBuyNFT {
+  string creator = 1;
+  string class_id = 2;
+  string nft_id = 3;
+  string seller = 4;
+  uint64 price = 5;
+}
+
+message MsgBuyNFTResponse {}
 
 // this line is used by starport scaffolding # proto/tx/message
