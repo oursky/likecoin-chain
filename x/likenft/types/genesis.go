@@ -18,6 +18,8 @@ func DefaultGenesis() *GenesisState {
 		ClassRevealQueue:     []ClassRevealQueueEntry{},
 		OfferList:            []Offer{},
 		ListingList:          []Listing{},
+		OfferExpireQueue:     []OfferExpireQueueEntry{},
+		ListingExpireQueue:   []ListingExpireQueueEntry{},
 		// this line is used by starport scaffolding # genesis/types/default
 		Params: DefaultParams(),
 	}
@@ -100,6 +102,26 @@ func (gs GenesisState) Validate() error {
 			return fmt.Errorf("duplicated index for listing")
 		}
 		listingIndexMap[index] = struct{}{}
+	}
+	// Check for duplicated index in offerExpireQueueEntry
+	offerExpireQueueEntryIndexMap := make(map[string]struct{})
+
+	for _, elem := range gs.OfferExpireQueue {
+		index := string(OfferExpireQueueKey(elem.ExpireTime, elem.OfferKey))
+		if _, ok := offerExpireQueueEntryIndexMap[index]; ok {
+			return fmt.Errorf("duplicated index for offerExpireQueueEntry")
+		}
+		offerExpireQueueEntryIndexMap[index] = struct{}{}
+	}
+	// Check for duplicated index in listingExpireQueueEntry
+	listingExpireQueueEntryIndexMap := make(map[string]struct{})
+
+	for _, elem := range gs.ListingExpireQueue {
+		index := string(ListingExpireQueueKey(elem.ExpireTime, elem.ListingKey))
+		if _, ok := listingExpireQueueEntryIndexMap[index]; ok {
+			return fmt.Errorf("duplicated index for listingExpireQueueEntry")
+		}
+		listingExpireQueueEntryIndexMap[index] = struct{}{}
 	}
 	// this line is used by starport scaffolding # genesis/types/validate
 

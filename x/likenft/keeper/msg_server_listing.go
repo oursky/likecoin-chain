@@ -21,6 +21,11 @@ func (k msgServer) CreateListing(goCtx context.Context, msg *types.MsgCreateList
 		return nil, types.ErrFailedToCreateListing.Wrapf("User do not own the NFT")
 	}
 
+	// Validate expiration range
+	if err := validateListingExpiration(ctx, msg.Expiration); err != nil {
+		return nil, err
+	}
+
 	// Check if the value already exists
 	_, isFound := k.GetListing(
 		ctx,
@@ -49,6 +54,11 @@ func (k msgServer) CreateListing(goCtx context.Context, msg *types.MsgCreateList
 		listing,
 	)
 
+	k.SetListingExpireQueueEntry(ctx, types.ListingExpireQueueEntry{
+		ExpireTime: listing.Expiration,
+		ListingKey: types.ListingKey(listing.ClassId, listing.NftId, listing.Seller),
+	})
+
 	pubListing := listing.ToPublicRecord()
 
 	ctx.EventManager().EmitTypedEvent(&types.EventCreateListing{
@@ -71,7 +81,7 @@ func (k msgServer) UpdateListing(goCtx context.Context, msg *types.MsgUpdateList
 	}
 
 	// Check if the value exists
-	_, isFound := k.GetListing(
+	oldListing, isFound := k.GetListing(
 		ctx,
 		msg.ClassId,
 		msg.NftId,
@@ -81,7 +91,12 @@ func (k msgServer) UpdateListing(goCtx context.Context, msg *types.MsgUpdateList
 		return nil, types.ErrListingNotFound
 	}
 
-	var listing = types.ListingStoreRecord{
+	// Validate expiration range
+	if err := validateListingExpiration(ctx, msg.Expiration); err != nil {
+		return nil, err
+	}
+
+	var newListing = types.ListingStoreRecord{
 		ClassId:    msg.ClassId,
 		NftId:      msg.NftId,
 		Seller:     userAddress,
@@ -89,9 +104,16 @@ func (k msgServer) UpdateListing(goCtx context.Context, msg *types.MsgUpdateList
 		Expiration: msg.Expiration,
 	}
 
-	k.SetListing(ctx, listing)
+	k.SetListing(ctx, newListing)
 
-	pubListing := listing.ToPublicRecord()
+	k.UpdateListingExpireQueueEntry(
+		ctx,
+		oldListing.Expiration,
+		types.OfferKey(oldListing.ClassId, oldListing.NftId, oldListing.Seller),
+		newListing.Expiration,
+	)
+
+	pubListing := newListing.ToPublicRecord()
 
 	ctx.EventManager().EmitTypedEvent(&types.EventUpdateListing{
 		ClassId: pubListing.ClassId,
@@ -128,6 +150,12 @@ func (k msgServer) DeleteListing(goCtx context.Context, msg *types.MsgDeleteList
 		listing.ClassId,
 		listing.NftId,
 		listing.Seller,
+	)
+
+	k.RemoveListingExpireQueueEntry(
+		ctx,
+		listing.Expiration,
+		types.OfferKey(listing.ClassId, listing.NftId, listing.Seller),
 	)
 
 	pubListing := listing.ToPublicRecord()
