@@ -144,12 +144,32 @@ func (k Keeper) PruneInvalidListingsForNFT(ctx sdk.Context, classId string, nftI
 	k.IterateListingsByNFT(ctx, classId, nftId, func(l types.ListingStoreRecord) {
 		if !l.Seller.Equals(nftOwner) {
 			k.RemoveListing(ctx, l.ClassId, l.NftId, l.Seller)
-			// TODO dequeue listing as well
+			k.RemoveListingExpireQueueEntry(
+				ctx,
+				l.Expiration,
+				types.OfferKey(l.ClassId, l.NftId, l.Seller),
+			)
 			ctx.EventManager().EmitTypedEvent(&types.EventDeleteListing{
 				ClassId: l.ClassId,
 				NftId:   l.NftId,
 				Seller:  l.Seller.String(),
 			})
 		}
+	})
+}
+
+func (k Keeper) PruneAllListingsForNFT(ctx sdk.Context, classId string, nftId string) {
+	k.IterateListingsByNFT(ctx, classId, nftId, func(l types.ListingStoreRecord) {
+		k.RemoveListing(ctx, l.ClassId, l.NftId, l.Seller)
+		k.RemoveListingExpireQueueEntry(
+			ctx,
+			l.Expiration,
+			types.OfferKey(l.ClassId, l.NftId, l.Seller),
+		)
+		ctx.EventManager().EmitTypedEvent(&types.EventDeleteListing{
+			ClassId: l.ClassId,
+			NftId:   l.NftId,
+			Seller:  l.Seller.String(),
+		})
 	})
 }
