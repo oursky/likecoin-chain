@@ -11,7 +11,7 @@ import (
 	"github.com/likecoin/likechain/x/likenft/utils"
 )
 
-func (k Keeper) RevealMintableNFTs(ctx sdk.Context, classId string) error {
+func (k Keeper) RevealBlindBoxContents(ctx sdk.Context, classId string) error {
 	// check if class is using blindbox
 	class, classData, err := k.GetClass(ctx, classId)
 	if err != nil {
@@ -27,7 +27,7 @@ func (k Keeper) RevealMintableNFTs(ctx sdk.Context, classId string) error {
 	}
 	// mint all remaining supply to owner
 	totalSupply := k.nftKeeper.GetTotalSupply(ctx, classId)
-	remainingSupply := classData.MintableCount - totalSupply
+	remainingSupply := classData.BlindBoxState.ContentCount - totalSupply
 	for i := 0; i < int(remainingSupply); i++ {
 		tokenId := fmt.Sprintf("nft%d", int(totalSupply)+i+1)
 
@@ -51,29 +51,29 @@ func (k Keeper) RevealMintableNFTs(ctx sdk.Context, classId string) error {
 		}
 	}
 
-	// get list of mintable ids and shuffle
-	var mintableIDs []string
-	k.IterateMintableNFTs(ctx, classId, func(val types.MintableNFT) {
-		mintableIDs = append(mintableIDs, val.Id)
+	// get list of content ids and shuffle
+	var contentIDs []string
+	k.IterateBlindBoxContents(ctx, classId, func(val types.BlindBoxContent) {
+		contentIDs = append(contentIDs, val.Id)
 	})
 
 	// shuffle with last block hash as seed
 	rand.Seed(utils.RandSeedFromLastBlock(ctx))
-	rand.Shuffle(len(mintableIDs), func(i, j int) {
-		mintableIDs[i], mintableIDs[j] = mintableIDs[j], mintableIDs[i]
+	rand.Shuffle(len(contentIDs), func(i, j int) {
+		contentIDs[i], contentIDs[j] = contentIDs[j], contentIDs[i]
 	})
 
 	// reveal tokens
 	tokens := k.nftKeeper.GetNFTsOfClass(ctx, classId)
-	if len(tokens) != len(mintableIDs) {
+	if len(tokens) != len(contentIDs) {
 		// should not happen
-		return fmt.Errorf("mintable length %d and minted tokens %d length mismatch", len(mintableIDs), len(tokens))
+		return fmt.Errorf("contents length %d and minted tokens %d length mismatch", len(contentIDs), len(tokens))
 	}
 	for i, token := range tokens {
 		// get assigned data
-		assigned, found := k.GetMintableNFT(ctx, classId, mintableIDs[i])
+		assigned, found := k.GetBlindBoxContent(ctx, classId, contentIDs[i])
 		if !found {
-			return types.ErrMintableNftNotFound
+			return types.ErrBlindBoxContentNotFound
 		}
 		// write data to token
 		var nftData types.NFTData
@@ -95,7 +95,7 @@ func (k Keeper) RevealMintableNFTs(ctx sdk.Context, classId string) error {
 	}
 
 	// Update revealed flag on class
-	classData.ToBeRevealed = false
+	classData.BlindBoxState.ToBeRevealed = false
 	classDataInAny, err := cdctypes.NewAnyWithValue(&classData)
 	if err != nil {
 		return types.ErrFailedToMarshalData.Wrapf("%s", err.Error())
@@ -105,8 +105,8 @@ func (k Keeper) RevealMintableNFTs(ctx sdk.Context, classId string) error {
 		return types.ErrFailedToUpdateClass.Wrapf("%s", err.Error())
 	}
 
-	// Delete all mintables
-	k.RemoveMintableNFTs(ctx, classId)
+	// Delete all blind box contents
+	k.RemoveBlindBoxContents(ctx, classId)
 
 	return nil
 }

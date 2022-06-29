@@ -12,10 +12,10 @@ import (
 
 var _ = strconv.Itoa(0)
 
-func CmdCreateMintableNFT() *cobra.Command {
+func CmdCreateBlindBoxContent() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create-mintable-nft [class-id] [id] [json-file-input]",
-		Short: "Create mintable nft content",
+		Use:   "create-blind-box-content [class-id] [content-id] [json-file-input]",
+		Short: "Create blind box content",
 		Example: `JSON file content:
 {
 	"uri": "",
@@ -36,7 +36,7 @@ func CmdCreateMintableNFT() *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgCreateMintableNFT(
+			msg := types.NewMsgCreateBlindBoxContent(
 				clientCtx.GetFromAddress().String(),
 				argClassId,
 				argId,

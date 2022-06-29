@@ -12,10 +12,10 @@ import (
 
 var _ = strconv.Itoa(0)
 
-func CmdDeleteMintableNFT() *cobra.Command {
+func CmdDeleteBlindBoxContent() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delete-mintable-nft [class-id] [id]",
-		Short: "Delete mintable nft content",
+		Use:   "delete-blind-box-content [class-id] [content-id]",
+		Short: "Delete blind box content",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			argClassId := args[0]
@@ -26,7 +26,7 @@ func CmdDeleteMintableNFT() *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgDeleteMintableNFT(
+			msg := types.NewMsgDeleteBlindBoxContent(
 				clientCtx.GetFromAddress().String(),
 				argClassId,
 				argId,

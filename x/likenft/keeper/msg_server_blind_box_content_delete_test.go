@@ -7,7 +7,6 @@ import (
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/golang/mock/gomock"
 	"github.com/likecoin/likechain/backport/cosmos-sdk/v0.46.0-alpha2/x/nft"
 	"github.com/likecoin/likechain/testutil/keeper"
@@ -16,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUpdateMintableNFTNormal(t *testing.T) {
+func TestDeleteBlindBoxContentNormal(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)
 	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
@@ -35,7 +34,7 @@ func TestUpdateMintableNFTNormal(t *testing.T) {
 	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
 	ownerAddress, _ := sdk.Bech32ifyAddressBytes("like", ownerAddressBytes)
 	classId := "likenft1aabbccddeeff"
-	mintableId := "mintable1"
+	contentId := "content1"
 
 	// Mock calls
 	classData := types.ClassData{
@@ -58,7 +57,9 @@ func TestUpdateMintableNFTNormal(t *testing.T) {
 				RevealTime: time.Date(2022, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
-		ToBeRevealed: true,
+		BlindBoxState: types.BlindBoxState{
+			ToBeRevealed: true,
+		},
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.EXPECT().GetClass(gomock.Any(), classId).Return(nft.Class{
@@ -77,46 +78,31 @@ func TestUpdateMintableNFTNormal(t *testing.T) {
 
 	nftKeeper.EXPECT().GetTotalSupply(gomock.Any(), classId).Return(uint64(0))
 
-	// once at seeding
-	nftKeeper.EXPECT().UpdateClass(gomock.Any(), gomock.Any()).Return(nil)
-
-	accountKeeper.EXPECT().GetAccount(gomock.Any(), ownerAddressBytes).Return(authtypes.NewBaseAccountWithAddress(ownerAddressBytes))
-	bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), ownerAddressBytes, authtypes.FeeCollectorName, gomock.Any()).Return(nil)
-
-	keeper.SetMintableNFT(ctx, types.MintableNFT{
+	// once at seeding, once at delete
+	nftKeeper.EXPECT().UpdateClass(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+	keeper.SetBlindBoxContent(ctx, types.BlindBoxContent{
 		ClassId: classId,
-		Id:      mintableId,
+		Id:      contentId,
 	})
 
 	// Run
-	nftInput := types.NFTInput{
-		Uri:      "ipfs://123456",
-		UriHash:  "123456",
-		Metadata: types.JsonInput(`{"aaaa": "bbbb"}`),
-	}
-	res, err := msgServer.UpdateMintableNFT(goCtx, &types.MsgUpdateMintableNFT{
+	res, err := msgServer.DeleteBlindBoxContent(goCtx, &types.MsgDeleteBlindBoxContent{
 		Creator: ownerAddress,
 		ClassId: classId,
-		Id:      mintableId,
-		Input:   nftInput,
+		Id:      contentId,
 	})
 
 	// Check output
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	updated, found := keeper.GetMintableNFT(ctx, classId, mintableId)
-	require.True(t, found)
-	require.Equal(t, types.MintableNFT{
-		ClassId: classId,
-		Id:      mintableId,
-		Input:   nftInput,
-	}, updated)
+	_, found := keeper.GetBlindBoxContent(ctx, classId, contentId)
+	require.False(t, found)
 
 	ctrl.Finish()
 }
 
-func TestUpdateMintableNFTClassNotFound(t *testing.T) {
+func TestDeleteBlindBoxContentClassNotFound(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)
 	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
@@ -135,7 +121,7 @@ func TestUpdateMintableNFTClassNotFound(t *testing.T) {
 	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
 	ownerAddress, _ := sdk.Bech32ifyAddressBytes("like", ownerAddressBytes)
 	classId := "likenft1aabbccddeeff"
-	mintableId := "mintable1"
+	contentId := "content1"
 
 	// Mock calls
 	nftKeeper.EXPECT().GetClass(gomock.Any(), classId).Return(nft.Class{}, false).MinTimes(1)
@@ -145,16 +131,10 @@ func TestUpdateMintableNFTClassNotFound(t *testing.T) {
 	})
 
 	// Run
-	nftInput := types.NFTInput{
-		Uri:      "ipfs://123456",
-		UriHash:  "123456",
-		Metadata: types.JsonInput(`{"aaaa": "bbbb"}`),
-	}
-	res, err := msgServer.UpdateMintableNFT(goCtx, &types.MsgUpdateMintableNFT{
+	res, err := msgServer.DeleteBlindBoxContent(goCtx, &types.MsgDeleteBlindBoxContent{
 		Creator: ownerAddress,
 		ClassId: classId,
-		Id:      mintableId,
-		Input:   nftInput,
+		Id:      contentId,
 	})
 
 	// Check output
@@ -165,7 +145,7 @@ func TestUpdateMintableNFTClassNotFound(t *testing.T) {
 	ctrl.Finish()
 }
 
-func TestUpdateMintableNFTBadRelation(t *testing.T) {
+func TestDeleteBlindBoxContentBadRelation(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)
 	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
@@ -183,7 +163,7 @@ func TestUpdateMintableNFTBadRelation(t *testing.T) {
 	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
 	ownerAddress, _ := sdk.Bech32ifyAddressBytes("like", ownerAddressBytes)
 	classId := "likenft1aabbccddeeff"
-	mintableId := "mintable1"
+	contentId := "content1"
 
 	// Mock calls
 	classData := types.ClassData{
@@ -206,7 +186,9 @@ func TestUpdateMintableNFTBadRelation(t *testing.T) {
 				RevealTime: time.Date(2022, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
-		ToBeRevealed: true,
+		BlindBoxState: types.BlindBoxState{
+			ToBeRevealed: true,
+		},
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.EXPECT().GetClass(gomock.Any(), classId).Return(nft.Class{
@@ -220,16 +202,10 @@ func TestUpdateMintableNFTBadRelation(t *testing.T) {
 	}, true).MinTimes(1)
 
 	// Run
-	nftInput := types.NFTInput{
-		Uri:      "ipfs://123456",
-		UriHash:  "123456",
-		Metadata: types.JsonInput(`{"aaaa": "bbbb"}`),
-	}
-	res, err := msgServer.UpdateMintableNFT(goCtx, &types.MsgUpdateMintableNFT{
+	res, err := msgServer.DeleteBlindBoxContent(goCtx, &types.MsgDeleteBlindBoxContent{
 		Creator: ownerAddress,
 		ClassId: classId,
-		Id:      mintableId,
-		Input:   nftInput,
+		Id:      contentId,
 	})
 
 	// Check output
@@ -240,7 +216,7 @@ func TestUpdateMintableNFTBadRelation(t *testing.T) {
 	ctrl.Finish()
 }
 
-func TestUpdateMintableNFTAlreadyMinted(t *testing.T) {
+func TestDeleteBlindBoxContentAlreadyMinted(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)
 	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
@@ -259,7 +235,7 @@ func TestUpdateMintableNFTAlreadyMinted(t *testing.T) {
 	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
 	ownerAddress, _ := sdk.Bech32ifyAddressBytes("like", ownerAddressBytes)
 	classId := "likenft1aabbccddeeff"
-	mintableId := "mintable1"
+	contentId := "content1"
 
 	// Mock calls
 	classData := types.ClassData{
@@ -282,7 +258,9 @@ func TestUpdateMintableNFTAlreadyMinted(t *testing.T) {
 				RevealTime: time.Date(2022, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
-		ToBeRevealed: true,
+		BlindBoxState: types.BlindBoxState{
+			ToBeRevealed: true,
+		},
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.EXPECT().GetClass(gomock.Any(), classId).Return(nft.Class{
@@ -302,16 +280,10 @@ func TestUpdateMintableNFTAlreadyMinted(t *testing.T) {
 	nftKeeper.EXPECT().GetTotalSupply(gomock.Any(), classId).Return(uint64(1))
 
 	// Run
-	nftInput := types.NFTInput{
-		Uri:      "ipfs://123456",
-		UriHash:  "123456",
-		Metadata: types.JsonInput(`{"aaaa": "bbbb"}`),
-	}
-	res, err := msgServer.UpdateMintableNFT(goCtx, &types.MsgUpdateMintableNFT{
+	res, err := msgServer.DeleteBlindBoxContent(goCtx, &types.MsgDeleteBlindBoxContent{
 		Creator: ownerAddress,
 		ClassId: classId,
-		Id:      mintableId,
-		Input:   nftInput,
+		Id:      contentId,
 	})
 
 	// Check output
@@ -322,7 +294,7 @@ func TestUpdateMintableNFTAlreadyMinted(t *testing.T) {
 	ctrl.Finish()
 }
 
-func TestUpdateMintableNFTNotOwner(t *testing.T) {
+func TestDeleteBlindBoxContentNotOwner(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)
 	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
@@ -341,7 +313,7 @@ func TestUpdateMintableNFTNotOwner(t *testing.T) {
 	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
 	ownerAddress, _ := sdk.Bech32ifyAddressBytes("like", ownerAddressBytes)
 	classId := "likenft1aabbccddeeff"
-	mintableId := "mintable1"
+	contentId := "content1"
 
 	// Mock calls
 	classData := types.ClassData{
@@ -364,7 +336,9 @@ func TestUpdateMintableNFTNotOwner(t *testing.T) {
 				RevealTime: time.Date(2022, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
-		ToBeRevealed: true,
+		BlindBoxState: types.BlindBoxState{
+			ToBeRevealed: true,
+		},
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.EXPECT().GetClass(gomock.Any(), classId).Return(nft.Class{
@@ -386,16 +360,10 @@ func TestUpdateMintableNFTNotOwner(t *testing.T) {
 	// Run
 	notOwnerAddressBytes := []byte{1, 0, 1, 0, 1, 0, 1, 0}
 	notOwnerAddress, _ := sdk.Bech32ifyAddressBytes("like", notOwnerAddressBytes)
-	nftInput := types.NFTInput{
-		Uri:      "ipfs://123456",
-		UriHash:  "123456",
-		Metadata: types.JsonInput(`{"aaaa": "bbbb"}`),
-	}
-	res, err := msgServer.UpdateMintableNFT(goCtx, &types.MsgUpdateMintableNFT{
+	res, err := msgServer.DeleteBlindBoxContent(goCtx, &types.MsgDeleteBlindBoxContent{
 		Creator: notOwnerAddress,
 		ClassId: classId,
-		Id:      mintableId,
-		Input:   nftInput,
+		Id:      contentId,
 	})
 
 	// Check output
@@ -406,7 +374,7 @@ func TestUpdateMintableNFTNotOwner(t *testing.T) {
 	ctrl.Finish()
 }
 
-func TestUpdateMintableNFTDoNotExist(t *testing.T) {
+func TestDeleteBlindBoxContentDoNotExist(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)
 	accountKeeper := testutil.NewMockAccountKeeper(ctrl)
@@ -425,7 +393,7 @@ func TestUpdateMintableNFTDoNotExist(t *testing.T) {
 	ownerAddressBytes := []byte{0, 1, 0, 1, 0, 1, 0, 1}
 	ownerAddress, _ := sdk.Bech32ifyAddressBytes("like", ownerAddressBytes)
 	classId := "likenft1aabbccddeeff"
-	mintableId := "mintable1"
+	contentId := "content1"
 
 	// Mock calls
 	classData := types.ClassData{
@@ -448,7 +416,9 @@ func TestUpdateMintableNFTDoNotExist(t *testing.T) {
 				RevealTime: time.Date(2022, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
 		},
-		ToBeRevealed: true,
+		BlindBoxState: types.BlindBoxState{
+			ToBeRevealed: true,
+		},
 	}
 	classDataInAny, _ := cdctypes.NewAnyWithValue(&classData)
 	nftKeeper.EXPECT().GetClass(gomock.Any(), classId).Return(nft.Class{
@@ -468,21 +438,15 @@ func TestUpdateMintableNFTDoNotExist(t *testing.T) {
 	nftKeeper.EXPECT().GetTotalSupply(gomock.Any(), classId).Return(uint64(0))
 
 	// Run
-	nftInput := types.NFTInput{
-		Uri:      "ipfs://123456",
-		UriHash:  "123456",
-		Metadata: types.JsonInput(`{"aaaa": "bbbb"}`),
-	}
-	res, err := msgServer.UpdateMintableNFT(goCtx, &types.MsgUpdateMintableNFT{
+	res, err := msgServer.DeleteBlindBoxContent(goCtx, &types.MsgDeleteBlindBoxContent{
 		Creator: ownerAddress,
 		ClassId: classId,
-		Id:      mintableId,
-		Input:   nftInput,
+		Id:      contentId,
 	})
 
 	// Check output
 	require.Error(t, err)
-	require.Contains(t, err.Error(), types.ErrMintableNftNotFound.Error())
+	require.Contains(t, err.Error(), types.ErrBlindBoxContentNotFound.Error())
 	require.Nil(t, res)
 
 	ctrl.Finish()
