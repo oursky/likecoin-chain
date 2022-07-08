@@ -534,7 +534,7 @@ func NewLikeApp(
 
 // Upgrade Handler
 func (app *LikeApp) registerUpgradeHandlers() {
-	app.UpgradeKeeper.SetUpgradeHandler("v3.0.0", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	app.UpgradeKeeper.SetUpgradeHandler("v3.0.0-rc1", func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		// Migration for ibc-go v2.1.0 to v2.3.0: Support base denoms with slashes
 		// Ref: https://github.com/cosmos/ibc-go/blob/main/docs/migrations/support-denoms-with-slashes.md
 
@@ -569,7 +569,7 @@ func (app *LikeApp) registerUpgradeHandlers() {
 		panic(err)
 	}
 
-	if upgradeInfo.Name == "v3.0.0" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
+	if upgradeInfo.Name == "v3.0.0-rc1" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
 		storeUpgrades := storetypes.StoreUpgrades{
 			Added: []string{nft.StoreKey, likenfttypes.StoreKey},
 		}
